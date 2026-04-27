@@ -12,6 +12,7 @@ import CommissionsManager from './components/CommissionsManager';
 import ReportsExport from './components/ReportsExport';
 import PricingManager from './components/PricingManager';
 import { useAppData } from '../../context/AppDataContext';
+import DailyAccounting from './components/DailyAccounting';
 
 type Section =
   | '#dashboard' | '#work-orders' | '#workers' | '#attendance' | '#commissions' |'#accounting' | '#analytics' | '#reports' | '#pricing';
@@ -143,6 +144,8 @@ export default function HomePage() {
         return <AttendanceManager />;
       case '#commissions':
         return <CommissionsManager />;
+      case '#accounting':
+        return <DailyAccounting />;  
       case '#reports':
         return <ReportsExport />;
       case '#pricing':
