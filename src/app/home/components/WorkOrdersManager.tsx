@@ -232,7 +232,8 @@ export default function WorkOrdersManager() {
 
       {/* Create/Edit Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 bg-black/40 overflow-y-auto"> p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+         <div className="min-h-screen flex items-start justify-center p-4 sm:p-6">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'hsl(210 18% 89%)' }}>
               <h3 className="font-bold text-lg" style={{ color: 'hsl(215 25% 12%)' }}>
