@@ -1,0 +1,87 @@
+-- Suds Car Wash Supabase Schema
+-- Run this in Supabase SQL Editor
+
+create table if not exists workers (
+  id text primary key,
+  name text not null,
+  phone text,
+  initials text,
+  status text default 'active',
+  jobs_today integer default 0,
+  commission_rate numeric default 15,
+  join_date date,
+  role text default 'Car Washer',
+  created_at timestamptz default now()
+);
+
+create table if not exists pricing (
+  id text primary key,
+  vehicle_type text not null,
+  service_type text not null,
+  price numeric default 0,
+  created_at timestamptz default now()
+);
+
+create table if not exists work_orders (
+  id text primary key,
+  plate text not null,
+  vehicle_type text not null,
+  services jsonb default '[]'::jsonb,
+  status text default 'Pending',
+  assigned_workers jsonb default '[]'::jsonb,
+  created_at timestamptz default now(),
+  started_at timestamptz,
+  completed_at timestamptz,
+  duration text,
+  notes text,
+  total_amount numeric default 0
+);
+
+create table if not exists attendance (
+  id text primary key,
+  worker_id text,
+  worker_name text,
+  date date not null,
+  check_in text,
+  check_out text,
+  status text default 'Present',
+  hours_worked numeric,
+  created_at timestamptz default now()
+);
+
+create table if not exists commissions (
+  id text primary key,
+  worker_id text,
+  worker_name text,
+  worker_initials text,
+  date date not null,
+  jobs_completed integer default 0,
+  total_earned numeric default 0,
+  rate numeric default 0,
+  created_at timestamptz default now()
+);
+
+insert into workers (id, name, phone, initials, status, jobs_today, commission_rate, join_date, role) values
+('w1', 'Kofi Boateng', '0551234567', 'KB', 'active', 0, 15, '2024-01-10', 'Car Washer'),
+('w2', 'Abena Osei', '0271234567', 'AO', 'active', 0, 15, '2024-02-05', 'Car Washer'),
+('w3', 'Ama Mensah', '0201234567', 'AM', 'active', 0, 15, '2024-03-01', 'Car Washer'),
+('w4', 'Kwame Asante', '0244123456', 'KA', 'active', 0, 15, '2024-01-20', 'Car Washer')
+on conflict (id) do nothing;
+
+insert into pricing (id, vehicle_type, service_type, price) values
+('p1', 'Saloon - Small', 'Body Wash', 20),
+('p2', 'Saloon - Medium', 'Body Wash', 25),
+('p3', 'Saloon - Large', 'Body Wash', 30),
+('p4', 'SUV - Medium', 'Body Wash', 35),
+('p5', 'SUV - Large', 'Body Wash', 40),
+('p6', 'SUV - Extra Large', 'Body Wash', 50),
+('p7', 'Saloon - Small', 'Under Wash', 15),
+('p8', 'Saloon - Medium', 'Under Wash', 20),
+('p9', 'SUV - Medium', 'Under Wash', 25),
+('p10', 'Saloon - Small', 'Engine Wash', 30),
+('p11', 'Saloon - Medium', 'Engine Wash', 35),
+('p12', 'SUV - Medium', 'Engine Wash', 40),
+('p13', 'Saloon - Small', 'Interior + Vacuuming', 25),
+('p14', 'Saloon - Medium', 'Interior + Vacuuming', 30),
+('p15', 'SUV - Medium', 'Interior + Vacuuming', 40)
+on conflict (id) do nothing;
