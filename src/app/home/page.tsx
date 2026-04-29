@@ -17,7 +17,17 @@ import UtilityTracker from './components/UtilityTracker';
 import UtilitySummaryCards from './components/UtilitySummaryCards';
 
 type Section =
-  | '#dashboard' | '#work-orders' | '#workers' | '#attendance' | '#commissions' |'#accounting' | '#analytics' | '#reports' | '#pricing' | '#utilities' ;
+  | '#dashboard'
+  | '#work-orders'
+  | '#workers'
+  | '#attendance'
+  | '#commissions'
+  | '#accounting'
+  | '#analytics'
+  | '#reports'
+  | '#pricing'
+  | '#utilities';
+
 
 
 const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
@@ -161,6 +171,7 @@ export default function HomePage() {
       case '#analytics':
         return (
           <div className="space-y-6">
+            <UtilitySummaryCards />
             <RevenueChart />
             <ServiceBreakdown />
           </div>
