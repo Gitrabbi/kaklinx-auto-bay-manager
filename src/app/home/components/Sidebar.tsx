@@ -18,6 +18,7 @@ const navItems: NavItem[] = [
   { label: 'AI Analytics', icon: <CpuChipIcon className="w-[18px] h-[18px] shrink-0" />, href: '#analytics' },
   { label: 'Reports & Export', icon: <ChartBarIcon className="w-[18px] h-[18px] shrink-0" />, href: '#reports' },
   { label: 'Pricing', icon: <Cog6ToothIcon className="w-[18px] h-[18px] shrink-0" />, href: '#pricing' },
+  { label: 'Utilities', href: '#utilities' },
 ];
 
 interface SidebarProps {
