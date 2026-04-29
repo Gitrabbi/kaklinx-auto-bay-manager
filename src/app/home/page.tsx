@@ -13,9 +13,12 @@ import ReportsExport from './components/ReportsExport';
 import PricingManager from './components/PricingManager';
 import { useAppData } from '../../context/AppDataContext';
 import DailyAccounting from './components/DailyAccounting';
+import UtilityTracker from './components/UtilityTracker';
+import UtilitySummaryCards from './components/UtilitySummaryCards';
 
 type Section =
-  | '#dashboard' | '#work-orders' | '#workers' | '#attendance' | '#commissions' |'#accounting' | '#analytics' | '#reports' | '#pricing';
+  | '#dashboard' | '#work-orders' | '#workers' | '#attendance' | '#commissions' |'#accounting' | '#analytics' | '#reports' | '#pricing' | '#utilities' ;
+
 
 const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
   '#dashboard': { title: 'Dashboard', subtitle: 'Overview of your car wash operations' },
@@ -27,6 +30,8 @@ const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
   '#analytics': { title: 'AI Analytics', subtitle: 'Intelligent insights for your business' },
   '#reports': { title: 'Reports & Export', subtitle: 'Generate and download business reports' },
   '#pricing': { title: 'Pricing', subtitle: 'Configure service prices per vehicle type' },
+  '#utilities': { title: 'Utility Tracking', subtitle: 'Track daily electricity and water consumption' },
+
 };
 
 function DashboardContent() {
@@ -47,6 +52,7 @@ function DashboardContent() {
         todayRevenue={`GH₵ ${todayRevenue.toFixed(2)}`}
         activeWorkers={activeWorkers}
       />
+      <UtilitySummaryCards />
       <RevenueChart />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
@@ -150,6 +156,8 @@ export default function HomePage() {
         return <ReportsExport />;
       case '#pricing':
         return <PricingManager />;
+      case '#utilities':
+        return <UtilityTracker />;
       case '#analytics':
         return (
           <div className="space-y-6">
