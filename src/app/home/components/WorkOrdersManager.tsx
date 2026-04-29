@@ -35,6 +35,9 @@ interface FormState {
   assignedWorkers: string[];
   notes: string;
   totalAmount: string;
+  additionalServiceDescription: string;
+  additionalServiceCost: string;
+  discount: string;
 }
 
 const emptyForm: FormState = {
@@ -44,12 +47,24 @@ const emptyForm: FormState = {
   assignedWorkers: [],
   notes: '',
   totalAmount: '',
+  additionalServiceDescription: '',
+  additionalServiceCost: '',
+  discount: '',
 };
+const PREMIUM_SERVICE = 'Interior Premium + Vacuuming + Body Wash';
+
+const PREMIUM_COMPONENTS = [
+  'Body Wash',
+  'Vacuuming',
+  'Interior + Vacuuming',
+];
+
 
 export default function WorkOrdersManager() {
   const {
     workOrders,
     workers,
+    pricing,
     addWorkOrder,
     updateWorkOrder,
     deleteWorkOrder,
@@ -113,6 +128,97 @@ export default function WorkOrdersManager() {
     setShowForm(true);
   };
 
+
+  <div>
+  <label className="block text-xs font-semibold mb-1.5">
+    Additional Service Description
+  </label>
+  <input
+    value={form.additionalServiceDescription}
+    onChange={(e) =>
+      setForm((f) => ({ ...f, additionalServiceDescription: e.target.value }))
+    }
+    placeholder="e.g. Seat stain removal, extra detailing"
+    className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2"
+    style={{ borderColor: 'hsl(210 18% 89%)' }}
+  />
+</div>
+
+<div>
+  <label className="block text-xs font-semibold mb-1.5">
+    Additional Service Cost (GH₵)
+  </label>
+  <input
+    type="number"
+    min="0"
+    step="0.01"
+    value={form.additionalServiceCost}
+    onChange={(e) => {
+      const additionalServiceCost = e.target.value;
+      setForm((f) => ({
+        ...f,
+        additionalServiceCost,
+        totalAmount: calculateTotal(
+          f.vehicleType,
+          f.services,
+          additionalServiceCost,
+          f.discount
+        ).toFixed(2),
+      }));
+    }}
+    placeholder="0.00"
+    className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2"
+    style={{ borderColor: 'hsl(210 18% 89%)' }}
+  />
+</div>
+
+<div>
+  <label className="block text-xs font-semibold mb-1.5">
+    Discount (GH₵)
+  </label>
+  <input
+    type="number"
+    min="0"
+    step="0.01"
+    value={form.discount}
+    onChange={(e) => {
+      const discount = e.target.value;
+      setForm((f) => ({
+        ...f,
+        discount,
+        totalAmount: calculateTotal(
+          f.vehicleType,
+          f.services,
+          f.additionalServiceCost,
+          discount
+        ).toFixed(2),
+      }));
+    }}
+    placeholder="0.00"
+    className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2"
+    style={{ borderColor: 'hsl(210 18% 89%)' }}
+  />
+</div>
+  const calculateTotal = (
+  vehicleType: string,
+  selectedServices: string[],
+  additionalCostValue = form.additionalServiceCost,
+  discountValue = form.discount
+) => {
+  const serviceTotal = selectedServices.reduce((sum, service) => {
+    const item = pricing.find(
+      (p) => p.vehicleType === vehicleType && p.serviceType === service
+    );
+
+    return sum + Number(item?.price || 0);
+  }, 0);
+
+  const additionalCost = Number(additionalCostValue || 0);
+  const discount = Number(discountValue || 0);
+
+  return Math.max(serviceTotal + additionalCost - discount, 0);
+};
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -125,6 +231,9 @@ export default function WorkOrdersManager() {
       assignedWorkers: form.assignedWorkers,
       notes: form.notes,
       totalAmount: form.totalAmount ? parseFloat(form.totalAmount) : undefined,
+      additionalServiceDescription: form.additionalServiceDescription,
+      additionalServiceCost: Number(form.additionalServiceCost || 0),
+      discount: Number(form.discount || 0),
       status: 'Pending' as WorkOrderStatus,
     };
 
@@ -139,14 +248,93 @@ export default function WorkOrdersManager() {
     setForm(emptyForm);
   };
 
+  const applyPremiumRules = (selectedServices: string[]) => {
+  const hasAllPremiumComponents = PREMIUM_COMPONENTS.every((svc) =>
+    selectedServices.includes(svc)
+  );
+
+  if (hasAllPremiumComponents && !selectedServices.includes(PREMIUM_SERVICE)) {
+    return [
+      ...selectedServices.filter((svc) => !PREMIUM_COMPONENTS.includes(svc)),
+      PREMIUM_SERVICE,
+    ];
+  }
+
+  return selectedServices;
+};
   const toggleService = (svc: string) => {
-    setForm((f) => ({
+  setForm((f) => {
+    let updatedServices = f.services.includes(svc)
+      ? f.services.filter((s) => s !== svc)
+      : [...f.services, svc];
+
+    updatedServices = applyPremiumRules(updatedServices);
+
+    const total = calculateTotal(f.vehicleType, updatedServices);
+
+    return {
       ...f,
-      services: f.services.includes(svc)
-        ? f.services.filter((s) => s !== svc)
-        : [...f.services, svc],
-    }));
-  };
+      services: updatedServices,
+      totalAmount: total.toFixed(2),
+    };
+  });
+};
+
+  {shouldSuggestPremium && (
+  <div className="rounded-lg border p-3 bg-blue-50" style={{ borderColor: 'hsl(205 78% 42%)' }}>
+    <p className="text-sm font-semibold text-blue-800">
+      Premium offer available
+    </p>
+    <p className="text-xs text-blue-700 mt-1">
+      This customer is close to a premium package. Offer Premium Service with a 10% discount?
+    </p>
+
+    <div className="flex gap-2 mt-3">
+      <button
+        type="button"
+        onClick={() => {
+          const premiumServices = [PREMIUM_SERVICE];
+
+          const premiumPrice =
+            pricing.find(
+              (p) =>
+                p.vehicleType === form.vehicleType &&
+                p.serviceType === PREMIUM_SERVICE
+            )?.price || 0;
+
+          const discount = Number(premiumPrice) * 0.1;
+          const total = Number(premiumPrice) - discount + Number(form.additionalServiceCost || 0);
+
+          setForm((f) => ({
+            ...f,
+            services: premiumServices,
+            discount: discount.toFixed(2),
+            totalAmount: total.toFixed(2),
+          }));
+        }}
+        className="px-3 py-2 rounded-lg text-xs font-semibold text-white"
+        style={{ backgroundColor: 'hsl(205 78% 42%)' }}
+      >
+        Apply Premium Offer
+      </button>
+
+      <button
+        type="button"
+        className="px-3 py-2 rounded-lg text-xs font-semibold border bg-white"
+      >
+        Keep Selected Services
+      </button>
+    </div>
+  </div>
+)}
+  
+  const selectedPremiumCount = PREMIUM_COMPONENTS.filter((svc) =>
+  form.services.includes(svc)
+).length;
+
+const shouldSuggestPremium =
+  selectedPremiumCount === PREMIUM_COMPONENTS.length - 1 &&
+  !form.services.includes(PREMIUM_SERVICE);
 
   const toggleWorker = (wid: string) => {
     setForm((f) => ({
