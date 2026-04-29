@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 export type WorkOrderStatus = 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
 export type WorkerStatus = 'active' | 'break' | 'offline';
 export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half Day';
+export type UtilityType = 'electricity' | 'water';
 
 export const VEHICLE_TYPES = [
   'Saloon - Small', 'Saloon - Medium', 'Saloon - Large',
@@ -32,6 +33,9 @@ export interface WorkOrder {
   duration?: string;
   notes?: string;
   totalAmount?: number;
+  additionalServiceDescription?: string;
+  additionalServiceCost?: number;
+  discount?: number;
 }
 
 export interface Worker {
@@ -75,12 +79,28 @@ export interface PricingItem {
   price: number;
 }
 
+export interface UtilityLog {
+  id: string;
+  logDate: string;
+  utilityType: UtilityType;
+  openingReading: number | null;
+  closingReading: number | null;
+  openingCost: number;
+  closingCost: number;
+  consumption?: number;
+  costConsumed?: number;
+  openingLoggedAt?: string;
+  closingLoggedAt?: string;
+  status: string;
+}
+
 interface AppDataContextType {
   workOrders: WorkOrder[];
   workers: Worker[];
   attendance: AttendanceRecord[];
   commissions: CommissionRecord[];
   pricing: PricingItem[];
+  utilityLogs: UtilityLog[];
 
   addWorkOrder: (wo: Omit<WorkOrder, 'id' | 'createdAt'>) => WorkOrder;
   updateWorkOrder: (id: string, updates: Partial<WorkOrder>) => void;
@@ -104,10 +124,28 @@ interface AppDataContextType {
   updatePricing: (id: string, updates: Partial<PricingItem>) => void;
   deletePricing: (id: string) => void;
 
+  saveUtilityOpening: (data: {
+    utilityType: UtilityType;
+    openingReading: number;
+    openingCost: number;
+  }) => Promise<void>;
+
+  saveUtilityClosing: (data: {
+    utilityType: UtilityType;
+    closingReading: number;
+    closingCost: number;
+  }) => Promise<void>;
+
   getTodayRevenue: () => number;
   getTodayOrders: () => number;
   getActiveJobs: () => number;
   getActiveWorkers: () => number;
+  getTodayUtilitySummary: () => {
+    electricityConsumption: number;
+    electricityCost: number;
+    waterConsumption: number;
+    waterCost: number;
+  };
 }
 
 const AppDataContext = createContext<AppDataContextType | null>(null);
@@ -120,6 +158,10 @@ function genId(prefix: string) {
 
 function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function todayISO() {
+  return new Date().toISOString().split('T')[0];
 }
 
 function dbToWorker(row: any): Worker {
@@ -182,6 +224,9 @@ function dbToWorkOrder(row: any): WorkOrder {
     duration: row.duration || undefined,
     notes: row.notes || '',
     totalAmount: Number(row.total_amount || 0),
+    additionalServiceDescription: row.additional_service_description || '',
+    additionalServiceCost: Number(row.additional_service_cost || 0),
+    discount: Number(row.discount || 0),
   };
 }
 
@@ -199,6 +244,9 @@ function workOrderToDb(wo: WorkOrder) {
     duration: wo.duration || null,
     notes: wo.notes || '',
     total_amount: wo.totalAmount || 0,
+    additional_service_description: wo.additionalServiceDescription || '',
+    additional_service_cost: wo.additionalServiceCost || 0,
+    discount: wo.discount || 0,
   };
 }
 
@@ -254,12 +302,46 @@ function commissionToDb(c: CommissionRecord) {
   };
 }
 
+
+function dbToUtilityLog(row: any): UtilityLog {
+  return {
+    id: row.id,
+    logDate: row.log_date,
+    utilityType: row.utility_type,
+    openingReading: row.opening_reading === null ? null : Number(row.opening_reading),
+    closingReading: row.closing_reading === null ? null : Number(row.closing_reading),
+    openingCost: Number(row.opening_cost || 0),
+    closingCost: Number(row.closing_cost || 0),
+    consumption: Number(row.consumption || 0),
+    costConsumed: Number(row.cost_consumed || 0),
+    openingLoggedAt: row.opening_logged_at || undefined,
+    closingLoggedAt: row.closing_logged_at || undefined,
+    status: row.status || 'pending',
+  };
+}
+
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [commissions, setCommissions] = useState<CommissionRecord[]>([]);
   const [pricing, setPricing] = useState<PricingItem[]>([]);
+  const [utilityLogs, setUtilityLogs] = useState<UtilityLog[]>([]);
+
+
+  const loadUtilityLogs = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('utility_logs')
+      .select('*')
+      .order('log_date', { ascending: false });
+
+    if (error) {
+      console.error('Load utility logs error:', error.message);
+      return;
+    }
+
+    if (data) setUtilityLogs(data.map(dbToUtilityLog));
+  }, []);
 
   const loadAllData = useCallback(async () => {
     const [
@@ -268,12 +350,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       workOrdersRes,
       attendanceRes,
       commissionsRes,
+      utilityLogsRes,
     ] = await Promise.all([
       supabase.from('workers').select('*').order('name'),
       supabase.from('pricing').select('*').order('vehicle_type'),
       supabase.from('work_orders').select('*').order('created_at', { ascending: false }),
       supabase.from('attendance').select('*').order('date', { ascending: false }),
       supabase.from('commissions').select('*').order('date', { ascending: false }),
+      supabase.from('utility_logs').select('*').order('log_date', { ascending: false }),
     ]);
 
     if (workersRes.data) setWorkers(workersRes.data.map(dbToWorker));
@@ -281,8 +365,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (workOrdersRes.data) setWorkOrders(workOrdersRes.data.map(dbToWorkOrder));
     if (attendanceRes.data) setAttendance(attendanceRes.data.map(dbToAttendance));
     if (commissionsRes.data) setCommissions(commissionsRes.data.map(dbToCommission));
+    if (utilityLogsRes.data) setUtilityLogs(utilityLogsRes.data.map(dbToUtilityLog));
 
-    const firstError = workersRes.error || pricingRes.error || workOrdersRes.error || attendanceRes.error || commissionsRes.error;
+    const firstError = workersRes.error || pricingRes.error || workOrdersRes.error || attendanceRes.error || commissionsRes.error || utilityLogsRes.error;
     if (firstError) console.error('Supabase load error:', firstError.message);
   }, []);
 
@@ -449,30 +534,147 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+
+  const saveUtilityOpening = useCallback(async ({
+    utilityType,
+    openingReading,
+    openingCost,
+  }: {
+    utilityType: UtilityType;
+    openingReading: number;
+    openingCost: number;
+  }) => {
+    const logDate = todayISO();
+    const id = `${utilityType}-${logDate}`;
+    const now = new Date().toISOString();
+
+    const row = {
+      id,
+      log_date: logDate,
+      utility_type: utilityType,
+      opening_reading: openingReading,
+      opening_cost: openingCost,
+      opening_logged_at: now,
+      status: 'opening_logged',
+    };
+
+    const { error } = await supabase
+      .from('utility_logs')
+      .upsert(row, { onConflict: 'log_date,utility_type' });
+
+    if (error) {
+      console.error('Save utility opening error:', error.message);
+      alert(error.message);
+      return;
+    }
+
+    await loadUtilityLogs();
+  }, [loadUtilityLogs]);
+
+  const saveUtilityClosing = useCallback(async ({
+    utilityType,
+    closingReading,
+    closingCost,
+  }: {
+    utilityType: UtilityType;
+    closingReading: number;
+    closingCost: number;
+  }) => {
+    const hour = new Date().getHours();
+
+    if (hour >= 20) {
+      alert('Closing entry is closed for today. It must be logged before 8:00 PM.');
+      return;
+    }
+
+    const logDate = todayISO();
+    const now = new Date().toISOString();
+
+    const { error } = await supabase
+      .from('utility_logs')
+      .update({
+        closing_reading: closingReading,
+        closing_cost: closingCost,
+        closing_logged_at: now,
+        status: 'completed',
+      })
+      .eq('log_date', logDate)
+      .eq('utility_type', utilityType);
+
+    if (error) {
+      console.error('Save utility closing error:', error.message);
+      alert(error.message);
+      return;
+    }
+
+    await loadUtilityLogs();
+  }, [loadUtilityLogs]);
+
   const getTodayRevenue = useCallback(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = todayISO();
     return workOrders
       .filter(wo => wo.status === 'Completed' && wo.completedAt?.startsWith(todayStr))
       .reduce((sum, wo) => sum + (wo.totalAmount || 0), 0);
   }, [workOrders]);
 
   const getTodayOrders = useCallback(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = todayISO();
     return workOrders.filter(wo => wo.createdAt.startsWith(todayStr)).length;
   }, [workOrders]);
 
   const getActiveJobs = useCallback(() => workOrders.filter(wo => wo.status === 'In Progress').length, [workOrders]);
   const getActiveWorkers = useCallback(() => workers.filter(w => w.status === 'active').length, [workers]);
 
+
+  const getTodayUtilitySummary = useCallback(() => {
+    const todayStr = todayISO();
+
+    const electricity = utilityLogs.find(
+      log => log.logDate === todayStr && log.utilityType === 'electricity'
+    );
+
+    const water = utilityLogs.find(
+      log => log.logDate === todayStr && log.utilityType === 'water'
+    );
+
+    const electricityConsumption = Math.max(
+      Number(electricity?.closingReading || 0) - Number(electricity?.openingReading || 0),
+      0
+    );
+
+    const electricityCost = Math.max(
+      Number(electricity?.closingCost || 0) - Number(electricity?.openingCost || 0),
+      0
+    );
+
+    const waterConsumption = Math.max(
+      Number(water?.closingReading || 0) - Number(water?.openingReading || 0),
+      0
+    );
+
+    const waterCost = Math.max(
+      Number(water?.closingCost || 0) - Number(water?.openingCost || 0),
+      0
+    );
+
+    return {
+      electricityConsumption,
+      electricityCost,
+      waterConsumption,
+      waterCost,
+    };
+  }, [utilityLogs]);
+
   return (
     <AppDataContext.Provider value={{
-      workOrders, workers, attendance, commissions, pricing,
+      workOrders, workers, attendance, commissions, pricing, utilityLogs,
       addWorkOrder, updateWorkOrder, deleteWorkOrder, startWorkOrder, completeWorkOrder,
       addWorker, updateWorker, deleteWorker,
       addAttendance, updateAttendance, deleteAttendance,
       addCommission, updateCommission, deleteCommission,
       addPricing, updatePricing, deletePricing,
-      getTodayRevenue, getTodayOrders, getActiveJobs, getActiveWorkers,
+      saveUtilityOpening, saveUtilityClosing,
+      getTodayRevenue, getTodayOrders, getActiveJobs, getActiveWorkers, getTodayUtilitySummary,
     }}>
       {children}
     </AppDataContext.Provider>
