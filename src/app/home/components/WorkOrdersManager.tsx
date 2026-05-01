@@ -542,6 +542,26 @@ export default function WorkOrdersManager() {
                     ))}
                   </div>
                 </div>
+                {/* AI Worker Recommendation */}
+                <div className="mt-3">
+                  <p className="text-xs font-semibold mb-1" style={{ color: 'hsl(215 10% 48%)' }}>
+                    Smart Assignment
+                  </p>
+
+                  <WorkerRecommendationPanel
+                    workers={workers}
+                    selectedServices={form.services}
+                    assignedWorkers={form.assignedWorkers}
+                    onSelectWorker={(workerId) => {
+                      setForm((f) => ({
+                        ...f,
+                        assignedWorkers: f.assignedWorkers.includes(workerId)
+                          ? f.assignedWorkers
+                          : [...f.assignedWorkers, workerId],
+                      }));
+                    }}
+                  />
+                </div>
 
                 {shouldSuggestPremium && (
                   <div className="rounded-lg border p-3 bg-blue-50" style={{ borderColor: 'hsl(205 78% 42%)' }}>
