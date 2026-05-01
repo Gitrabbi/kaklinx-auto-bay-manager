@@ -36,6 +36,13 @@ export interface WorkOrder {
   additionalServiceDescription?: string;
   additionalServiceCost?: number;
   discount?: number;
+  customerRating?: number;
+  customerComment?: string;
+  customerSatisfaction?: string;
+  customerCertifiedAt?: string;
+  closureStatus?: 'open' | 'awaiting_customer' | 'closed';
+  targetMinutes?: number;
+  qualityPassed?: boolean;
 }
 
 export interface Worker {
@@ -227,6 +234,13 @@ function dbToWorkOrder(row: any): WorkOrder {
     additionalServiceDescription: row.additional_service_description || '',
     additionalServiceCost: Number(row.additional_service_cost || 0),
     discount: Number(row.discount || 0),
+    customerRating: row.customer_rating ? Number(row.customer_rating) : undefined,
+    customerComment: row.customer_comment || '',
+    customerSatisfaction: row.customer_satisfaction || '',
+    customerCertifiedAt: row.customer_certified_at || undefined,
+    closureStatus: row.closure_status || 'open',
+    targetMinutes: Number(row.target_minutes || 30),
+    qualityPassed: row.quality_passed ?? true,
   };
 }
 
@@ -247,6 +261,13 @@ function workOrderToDb(wo: WorkOrder) {
     additional_service_description: wo.additionalServiceDescription || '',
     additional_service_cost: wo.additionalServiceCost || 0,
     discount: wo.discount || 0,
+    customer_rating: wo.customerRating || null,
+    customer_comment: wo.customerComment || '',
+    customer_satisfaction: wo.customerSatisfaction || '',
+    customer_certified_at: wo.customerCertifiedAt || null,
+    closure_status: wo.closureStatus || 'open',
+    target_minutes: wo.targetMinutes || 30,
+    quality_passed: wo.qualityPassed ?? true,
   };
 }
 
@@ -418,8 +439,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       const mins = Math.floor(ms / 60000);
       duration = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
     }
-
-    updateWorkOrder(id, { status: 'Completed', completedAt, duration });
+    
+    updateWorkOrder(id, { status: 'Completed', completedAt, duration, closureStatus: 'awaiting_customer',});
 
     wo.assignedWorkers.forEach(wid => {
       const worker = workers.find(w => w.id === wid);
