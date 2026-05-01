@@ -1,5 +1,5 @@
 'use client';
-
+import WorkerRecommendationPanel from './WorkerRecommendationPanel';
 import React, { useState } from 'react';
 import {
   PlusIcon,
