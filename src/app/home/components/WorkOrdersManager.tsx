@@ -12,7 +12,7 @@ import {
   EyeIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
-import { QRCodeCanvas } from 'qrcode.react';
+import QRCode from 'react-qr-code';
 import {
   useAppData,
   WorkOrder,
@@ -724,7 +724,7 @@ export default function WorkOrdersManager() {
                   </p>
 
                   <div className="flex justify-center">
-                    <QRCodeCanvas
+                    <QRCode
                       value={`${window.location.origin}/customer-certify/${viewOrder.id}`}
                       size={180}
                     />
