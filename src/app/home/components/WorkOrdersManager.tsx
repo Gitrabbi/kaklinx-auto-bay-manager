@@ -28,7 +28,7 @@ const statusConfig: Record<WorkOrderStatus, { className: string; label: string }
   Cancelled: { className: 'badge-cancelled', label: 'Cancelled' },
 };
 
-const PREMIUM_SERVICE = 'Interior Premium + Vacuuming + Body Wash';
+const PREMIUM_SERVICE = 'Interior  + Vacuuming + Body Wash';
 
 const PREMIUM_COMPONENTS = [
   'Body Wash',
