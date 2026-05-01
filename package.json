@@ -26,6 +26,7 @@
     "react-dom": "19.0.3",
     "react-qr-code": "^2.0.15",
     "recharts": "^2.15.2"
+    "jspdf": "^2.5.2",
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
