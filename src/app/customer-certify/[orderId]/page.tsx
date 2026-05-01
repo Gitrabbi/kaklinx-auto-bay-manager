@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-
+import jsPDF from 'jspdf';
 export default function CustomerCertifyPage() {
   const params = useParams();
   const orderId = params.orderId as string;
@@ -64,35 +64,106 @@ export default function CustomerCertifyPage() {
     setSubmitting(false);
   };
 
-  const downloadInvoice = () => {
-    const invoiceText = `
-KAKLINX BAY - CUSTOMER INVOICE
+ const downloadInvoice = () => {
+  const doc = new jsPDF();
 
-Order ID: ${order.id}
-Plate Number: ${order.plate}
-Vehicle Type: ${order.vehicle_type}
-Services: ${(order.services || []).join(', ')}
-Amount: GH₵ ${Number(order.total_amount || 0).toFixed(2)}
+  const invoiceNo = `INV-${order.id}`;
+  const today = new Date().toLocaleDateString();
 
-Customer Rating: ${rating}/5
-Satisfaction: ${satisfaction}
-Comment: ${comment || 'No comment'}
+  doc.setFontSize(18);
+  doc.text('KAKLINX BAY', 20, 20);
 
-Status: CLOSED
-Certified At: ${new Date().toLocaleString()}
-`;
+  doc.setFontSize(11);
+  doc.text('Professional Car Wash Invoice', 20, 28);
 
-    const blob = new Blob([invoiceText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
+  doc.setFontSize(10);
+  doc.text(`Invoice No: ${invoiceNo}`, 140, 20);
+  doc.text(`Date: ${today}`, 140, 28);
+  doc.text(`Order ID: ${order.id}`, 140, 36);
 
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `invoice_${order.id}.txt`;
-    a.click();
+  doc.line(20, 45, 190, 45);
 
-    URL.revokeObjectURL(url);
-  };
+  doc.setFontSize(12);
+  doc.text('Customer / Vehicle Information', 20, 55);
 
+  doc.setFontSize(10);
+  doc.text(`Plate Number: ${order.plate}`, 20, 65);
+  doc.text(`Vehicle Type: ${order.vehicle_type}`, 20, 73);
+
+  doc.setFontSize(12);
+  doc.text('Services Ordered', 20, 90);
+
+  let y = 100;
+  doc.setFontSize(10);
+
+  (order.services || []).forEach((service: string, index: number) => {
+    doc.text(`${index + 1}. ${service}`, 25, y);
+    y += 8;
+  });
+
+  if (order.additional_service_description) {
+    doc.text(`Additional Service: ${order.additional_service_description}`, 25, y);
+    y += 8;
+  }
+
+  doc.line(20, y + 4, 190, y + 4);
+
+  y += 15;
+
+  doc.setFontSize(12);
+  doc.text('Payment Summary', 20, y);
+
+  y += 10;
+
+  doc.setFontSize(10);
+  doc.text(`Service Total: GH₵ ${Number(order.total_amount || 0).toFixed(2)}`, 120, y);
+  y += 8;
+
+  if (order.additional_service_cost) {
+    doc.text(
+      `Additional Cost: GH₵ ${Number(order.additional_service_cost || 0).toFixed(2)}`,
+      120,
+      y
+    );
+    y += 8;
+  }
+
+  if (order.discount) {
+    doc.text(`Discount: GH₵ ${Number(order.discount || 0).toFixed(2)}`, 120, y);
+    y += 8;
+  }
+
+  doc.setFontSize(13);
+  doc.text(`TOTAL TO BE PAID: GH₵ ${Number(order.total_amount || 0).toFixed(2)}`, 95, y + 5);
+
+  y += 25;
+
+  doc.setFontSize(12);
+  doc.text('Customer Certification', 20, y);
+
+  y += 10;
+
+  doc.setFontSize(10);
+  doc.text(`Satisfaction: ${satisfaction}`, 20, y);
+  y += 8;
+  doc.text(`Rating: ${rating}/5`, 20, y);
+  y += 8;
+  doc.text(`Quality Passed: ${qualityPassed ? 'Yes' : 'No / Needs Attention'}`, 20, y);
+  y += 8;
+
+  if (comment) {
+    doc.text(`Comment: ${comment}`, 20, y);
+    y += 8;
+  }
+
+  doc.text(`Certified At: ${new Date().toLocaleString()}`, 20, y + 5);
+
+  doc.line(20, 275, 190, 275);
+  doc.setFontSize(9);
+  doc.text('Thank you for choosing Kaklinx Bay.', 20, 283);
+
+  doc.save(`${invoiceNo}.pdf`);
+};
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
