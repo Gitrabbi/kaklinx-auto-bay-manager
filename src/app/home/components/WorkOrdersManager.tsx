@@ -28,7 +28,7 @@ const statusConfig: Record<WorkOrderStatus, { className: string; label: string }
   Cancelled: { className: 'badge-cancelled', label: 'Cancelled' },
 };
 
-const PREMIUM_SERVICE = 'Interior  + Vacuuming + Body Wash';
+const PREMIUM_SERVICE = 'Interior Premium + Vacuuming + Body Wash';
 
 const PREMIUM_COMPONENTS = [
   'Body Wash',
@@ -446,6 +446,15 @@ export default function WorkOrdersManager() {
                           <button onClick={() => setViewOrder(wo)} className="p-1.5 rounded-lg hover:bg-blue-50 transition-colors" title="View">
                             <EyeIcon className="w-4 h-4" style={{ color: 'hsl(205 78% 42%)' }} />
                           </button>
+                          {wo.status === 'Completed' && wo.closureStatus === 'awaiting_customer' && (
+                            <button
+                              onClick={() => setViewOrder(wo)}
+                              className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700"
+                              title="Customer Certification QR"
+                            >
+                              QR
+                            </button>
+                          )}
                           {wo.status === 'Pending' && (
                             <button onClick={() => startWorkOrder(wo.id)} className="p-1.5 rounded-lg hover:bg-emerald-50 transition-colors" title="Start">
                               <PlayIcon className="w-4 h-4 text-emerald-600" />
@@ -670,6 +679,7 @@ export default function WorkOrdersManager() {
                 ['Vehicle Type', viewOrder.vehicleType],
                 ['Services', viewOrder.services.join(', ') || '—'],
                 ['Status', viewOrder.status],
+                ['Closure Status', viewOrder.closureStatus || 'open'],
                 ['Assigned Workers', workers.filter((w) => viewOrder.assignedWorkers.includes(w.id)).map((w) => w.name).join(', ') || '—'],
                 ['Additional Service', (viewOrder as any).additionalServiceDescription || '—'],
                 ['Additional Cost', (viewOrder as any).additionalServiceCost ? `GH₵ ${Number((viewOrder as any).additionalServiceCost).toFixed(2)}` : '—'],
@@ -686,6 +696,29 @@ export default function WorkOrdersManager() {
                   <span className="text-xs text-right" style={{ color: 'hsl(215 25% 12%)' }}>{value}</span>
                 </div>
               ))}
+
+              {viewOrder.status === 'Completed' && viewOrder.closureStatus === 'awaiting_customer' && (
+                <div className="mt-4 rounded-xl border p-4 text-center" style={{ borderColor: 'hsl(210 18% 89%)' }}>
+                  <p className="text-sm font-semibold mb-3" style={{ color: 'hsl(215 25% 12%)' }}>
+                    Customer Certification
+                  </p>
+
+                  <div className="flex justify-center">
+                    <QRCodeCanvas
+                      value={`${window.location.origin}/customer-certify/${viewOrder.id}`}
+                      size={180}
+                    />
+                  </div>
+
+                  <p className="text-xs mt-3 text-slate-500">
+                    Customer should scan this QR code to certify job completion and close the work order.
+                  </p>
+
+                  <p className="text-[11px] mt-2 break-all text-slate-400">
+                    {`${window.location.origin}/customer-certify/${viewOrder.id}`}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
