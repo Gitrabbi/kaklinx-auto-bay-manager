@@ -12,7 +12,7 @@ import {
   EyeIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
-
+import { QRCodeCanvas } from 'qrcode.react';
 import {
   useAppData,
   WorkOrder,
