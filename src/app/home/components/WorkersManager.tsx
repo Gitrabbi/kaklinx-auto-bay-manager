@@ -1,7 +1,8 @@
 'use client';
-import React, { useState } from 'react';
-import { PlusIcon, PencilSquareIcon, TrashIcon, XMarkIcon, UsersIcon, MagnifyingGlassIcon,  } from '@heroicons/react/24/outline';
+import React, { useEffect, useState } from 'react';
+import { PlusIcon, PencilSquareIcon, TrashIcon, XMarkIcon, UsersIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useAppData, Worker, WorkerStatus } from '../../../context/AppDataContext';
+import { supabase } from '@/lib/supabaseClient';
 
 interface FormState {
   name: string;
@@ -10,6 +11,19 @@ interface FormState {
   status: WorkerStatus;
   commissionRate: string;
   joinDate: string;
+}
+
+interface WorkerPerformance {
+  workerId: string;
+  workerName: string;
+  jobsCompleted: number;
+  averageCompletionMinutes: number;
+  averageRating: number;
+  speedScore: number;
+  qualityScore: number;
+  levelName: string;
+  badgeName: string;
+  extraCommissionRate: number;
 }
 
 const emptyForm: FormState = {
@@ -22,6 +36,36 @@ const statusColors: Record<WorkerStatus, { bg: string; text: string; label: stri
   offline: { bg: 'hsla(215,10%,48%,0.1)', text: 'hsl(215 10% 48%)', label: 'Offline' },
 };
 
+function dbToWorkerPerformance(row: any): WorkerPerformance {
+  return {
+    workerId: row.worker_id,
+    workerName: row.worker_name || '',
+    jobsCompleted: Number(row.jobs_completed || 0),
+    averageCompletionMinutes: Number(row.average_completion_minutes || 0),
+    averageRating: Number(row.average_rating || 0),
+    speedScore: Number(row.speed_score || 0),
+    qualityScore: Number(row.quality_score || 0),
+    levelName: row.level_name || 'Starter',
+    badgeName: row.badge_name || 'New Worker',
+    extraCommissionRate: Number(row.extra_commission_rate || 0),
+  };
+}
+
+function getLevelStyle(levelName: string) {
+  switch (levelName) {
+    case 'Elite':
+      return 'bg-purple-100 text-purple-800 border-purple-200';
+    case 'Gold':
+      return 'bg-amber-100 text-amber-800 border-amber-200';
+    case 'Silver':
+      return 'bg-slate-100 text-slate-700 border-slate-200';
+    case 'Bronze':
+      return 'bg-orange-100 text-orange-800 border-orange-200';
+    default:
+      return 'bg-blue-100 text-blue-800 border-blue-200';
+  }
+}
+
 export default function WorkersManager() {
   const { workers, addWorker, updateWorker, deleteWorker } = useAppData();
   const [showForm, setShowForm] = useState(false);
@@ -29,6 +73,30 @@ export default function WorkersManager() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [performance, setPerformance] = useState<Record<string, WorkerPerformance>>({});
+
+  useEffect(() => {
+    async function loadPerformance() {
+      const { data, error } = await supabase
+        .from('worker_performance')
+        .select('*');
+
+      if (error) {
+        console.error('Worker performance load error:', error.message);
+        return;
+      }
+
+      const mapped: Record<string, WorkerPerformance> = {};
+      (data || []).forEach((row) => {
+        const item = dbToWorkerPerformance(row);
+        mapped[item.workerId] = item;
+      });
+
+      setPerformance(mapped);
+    }
+
+    loadPerformance();
+  }, []);
 
   const openCreate = () => { setForm(emptyForm); setEditId(null); setShowForm(true); };
   const openEdit = (w: Worker) => {
@@ -111,6 +179,61 @@ export default function WorkersManager() {
                 <p className="font-semibold text-sm mb-0.5" style={{ color: 'hsl(215 25% 12%)' }}>{w.name}</p>
                 <p className="text-xs mb-0.5" style={{ color: 'hsl(215 10% 48%)' }}>{w.role}</p>
                 <p className="text-xs mb-3" style={{ color: 'hsl(215 10% 48%)' }}>{w.phone}</p>
+
+                {performance[w.id] ? (
+                  <div className="rounded-lg border p-3 mb-3 bg-slate-50" style={{ borderColor: 'hsl(210 18% 89%)' }}>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className={`px-2 py-1 rounded-full border text-[11px] font-bold ${getLevelStyle(performance[w.id].levelName)}`}>
+                        {performance[w.id].levelName}
+                      </span>
+                      <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-full">
+                        {performance[w.id].badgeName}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <p style={{ color: 'hsl(215 10% 48%)' }}>Avg Rating</p>
+                        <p className="font-bold" style={{ color: 'hsl(215 25% 12%)' }}>
+                          {performance[w.id].averageRating.toFixed(1)} / 5
+                        </p>
+                      </div>
+                      <div>
+                        <p style={{ color: 'hsl(215 10% 48%)' }}>Speed Score</p>
+                        <p className="font-bold" style={{ color: 'hsl(215 25% 12%)' }}>
+                          {performance[w.id].speedScore.toFixed(0)}%
+                        </p>
+                      </div>
+                      <div>
+                        <p style={{ color: 'hsl(215 10% 48%)' }}>Quality Score</p>
+                        <p className="font-bold" style={{ color: 'hsl(215 25% 12%)' }}>
+                          {performance[w.id].qualityScore.toFixed(0)}%
+                        </p>
+                      </div>
+                      <div>
+                        <p style={{ color: 'hsl(215 10% 48%)' }}>Extra Comm.</p>
+                        <p className="font-bold text-emerald-700">
+                          +{performance[w.id].extraCommissionRate.toFixed(1)}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border p-3 mb-3 bg-slate-50" style={{ borderColor: 'hsl(210 18% 89%)' }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="px-2 py-1 rounded-full border text-[11px] font-bold bg-blue-100 text-blue-800 border-blue-200">
+                        Starter
+                      </span>
+                      <span className="text-[11px] font-semibold text-slate-600 bg-white px-2 py-1 rounded-full border">
+                        New Worker
+                      </span>
+                    </div>
+                    <p className="text-[11px] mt-2" style={{ color: 'hsl(215 10% 48%)' }}>
+                      No certified jobs yet.
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between text-xs mb-3">
                   <span style={{ color: 'hsl(215 10% 48%)' }}>Commission</span>
                   <span className="font-semibold" style={{ color: 'hsl(205 78% 42%)' }}>{w.commissionRate}%</span>
