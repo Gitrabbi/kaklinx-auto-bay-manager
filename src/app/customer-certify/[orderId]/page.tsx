@@ -54,6 +54,109 @@ export default function CustomerCertifyPage() {
       alert(error.message);
       return;
     }
+    await calculateWorkerPerformance();
+    const calculateWorkerPerformance = async () => {
+  if (!order?.assigned_workers || order.assigned_workers.length === 0) return;
+
+  const completedAt = order.completed_at ? new Date(order.completed_at) : null;
+  const startedAt = order.started_at ? new Date(order.started_at) : null;
+
+  const completionMinutes =
+    completedAt && startedAt
+      ? Math.max((completedAt.getTime() - startedAt.getTime()) / 60000, 1)
+      : Number(order.target_minutes || 30);
+
+  const targetMinutes = Number(order.target_minutes || 30);
+
+  const speedScore =
+    completionMinutes <= targetMinutes
+      ? 100
+      : Math.max(40, 100 - ((completionMinutes - targetMinutes) / targetMinutes) * 100);
+
+  const qualityScore = qualityPassed ? Number(rating) * 20 : Number(rating) * 10;
+
+  for (const workerId of order.assigned_workers) {
+    const { data: worker } = await supabase
+      .from('workers')
+      .select('*')
+      .eq('id', workerId)
+      .single();
+
+    const { data: existing } = await supabase
+      .from('worker_performance')
+      .select('*')
+      .eq('worker_id', workerId)
+      .single();
+
+    const previousJobs = Number(existing?.jobs_completed || 0);
+    const newJobs = previousJobs + 1;
+
+    const previousAvgMinutes = Number(existing?.average_completion_minutes || 0);
+    const newAvgMinutes =
+      previousJobs === 0
+        ? completionMinutes
+        : ((previousAvgMinutes * previousJobs) + completionMinutes) / newJobs;
+
+    const previousAvgRating = Number(existing?.average_rating || 0);
+    const newAvgRating =
+      previousJobs === 0
+        ? Number(rating)
+        : ((previousAvgRating * previousJobs) + Number(rating)) / newJobs;
+
+    const previousSpeedScore = Number(existing?.speed_score || 0);
+    const newSpeedScore =
+      previousJobs === 0
+        ? speedScore
+        : ((previousSpeedScore * previousJobs) + speedScore) / newJobs;
+
+    const previousQualityScore = Number(existing?.quality_score || 0);
+    const newQualityScore =
+      previousJobs === 0
+        ? qualityScore
+        : ((previousQualityScore * previousJobs) + qualityScore) / newJobs;
+
+    let levelName = 'Starter';
+    let badgeName = 'New Worker';
+    let extraCommissionRate = 0;
+
+    if (newJobs >= 100 && newAvgRating >= 4.5 && newQualityScore >= 85) {
+      levelName = 'Elite';
+      badgeName = 'Customer Favorite';
+      extraCommissionRate = 5;
+    } else if (newJobs >= 60 && newAvgRating >= 4.3 && newQualityScore >= 80) {
+      levelName = 'Gold';
+      badgeName = 'Quality Champion';
+      extraCommissionRate = 3;
+    } else if (newJobs >= 30 && newAvgRating >= 4.0 && newQualityScore >= 75) {
+      levelName = 'Silver';
+      badgeName = 'Reliable Finisher';
+      extraCommissionRate = 2;
+    } else if (newJobs >= 10 && newAvgRating >= 3.5) {
+      levelName = 'Bronze';
+      badgeName = 'Rising Performer';
+      extraCommissionRate = 1;
+    }
+
+    if (newSpeedScore >= 90 && newAvgRating >= 4) {
+      badgeName = 'Speed Star';
+    }
+
+    await supabase.from('worker_performance').upsert({
+      id: `perf-${workerId}`,
+      worker_id: workerId,
+      worker_name: worker?.name || '',
+      jobs_completed: newJobs,
+      average_completion_minutes: newAvgMinutes,
+      average_rating: newAvgRating,
+      speed_score: newSpeedScore,
+      quality_score: newQualityScore,
+      level_name: levelName,
+      badge_name: badgeName,
+      extra_commission_rate: extraCommissionRate,
+      updated_at: new Date().toISOString(),
+    });
+  }
+};
 
     setSubmitted(true);
   };
