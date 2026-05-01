@@ -10,6 +10,7 @@ export default function CustomerCertifyPage() {
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const [satisfaction, setSatisfaction] = useState('Very satisfied');
@@ -25,7 +26,9 @@ export default function CustomerCertifyPage() {
         .eq('id', orderId)
         .single();
 
-      if (!error && data) {
+      if (error) {
+        alert(error.message);
+      } else {
         setOrder(data);
       }
 
@@ -37,6 +40,7 @@ export default function CustomerCertifyPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
 
     const { error } = await supabase
       .from('work_orders')
@@ -51,135 +55,50 @@ export default function CustomerCertifyPage() {
       .eq('id', orderId);
 
     if (error) {
-      alert(error.message);
+      alert(`Submit failed: ${error.message}`);
+      setSubmitting(false);
       return;
     }
-    await calculateWorkerPerformance();
-    const calculateWorkerPerformance = async () => {
-  if (!order?.assigned_workers || order.assigned_workers.length === 0) return;
-
-  const completedAt = order.completed_at ? new Date(order.completed_at) : null;
-  const startedAt = order.started_at ? new Date(order.started_at) : null;
-
-  const completionMinutes =
-    completedAt && startedAt
-      ? Math.max((completedAt.getTime() - startedAt.getTime()) / 60000, 1)
-      : Number(order.target_minutes || 30);
-
-  const targetMinutes = Number(order.target_minutes || 30);
-
-  const speedScore =
-    completionMinutes <= targetMinutes
-      ? 100
-      : Math.max(40, 100 - ((completionMinutes - targetMinutes) / targetMinutes) * 100);
-
-  const qualityScore = qualityPassed ? Number(rating) * 20 : Number(rating) * 10;
-
-  for (const workerId of order.assigned_workers) {
-    const { data: worker } = await supabase
-      .from('workers')
-      .select('*')
-      .eq('id', workerId)
-      .single();
-
-    const { data: existing } = await supabase
-      .from('worker_performance')
-      .select('*')
-      .eq('worker_id', workerId)
-      .single();
-
-    const previousJobs = Number(existing?.jobs_completed || 0);
-    const newJobs = previousJobs + 1;
-
-    const previousAvgMinutes = Number(existing?.average_completion_minutes || 0);
-    const newAvgMinutes =
-      previousJobs === 0
-        ? completionMinutes
-        : ((previousAvgMinutes * previousJobs) + completionMinutes) / newJobs;
-
-    const previousAvgRating = Number(existing?.average_rating || 0);
-    const newAvgRating =
-      previousJobs === 0
-        ? Number(rating)
-        : ((previousAvgRating * previousJobs) + Number(rating)) / newJobs;
-
-    const previousSpeedScore = Number(existing?.speed_score || 0);
-    const newSpeedScore =
-      previousJobs === 0
-        ? speedScore
-        : ((previousSpeedScore * previousJobs) + speedScore) / newJobs;
-
-    const previousQualityScore = Number(existing?.quality_score || 0);
-    const newQualityScore =
-      previousJobs === 0
-        ? qualityScore
-        : ((previousQualityScore * previousJobs) + qualityScore) / newJobs;
-
-    let levelName = 'Starter';
-    let badgeName = 'New Worker';
-    let extraCommissionRate = 0;
-
-    if (newJobs >= 100 && newAvgRating >= 4.5 && newQualityScore >= 85) {
-      levelName = 'Elite';
-      badgeName = 'Customer Favorite';
-      extraCommissionRate = 5;
-    } else if (newJobs >= 60 && newAvgRating >= 4.3 && newQualityScore >= 80) {
-      levelName = 'Gold';
-      badgeName = 'Quality Champion';
-      extraCommissionRate = 3;
-    } else if (newJobs >= 30 && newAvgRating >= 4.0 && newQualityScore >= 75) {
-      levelName = 'Silver';
-      badgeName = 'Reliable Finisher';
-      extraCommissionRate = 2;
-    } else if (newJobs >= 10 && newAvgRating >= 3.5) {
-      levelName = 'Bronze';
-      badgeName = 'Rising Performer';
-      extraCommissionRate = 1;
-    }
-
-    if (newSpeedScore >= 90 && newAvgRating >= 4) {
-      badgeName = 'Speed Star';
-    }
-
-    await supabase.from('worker_performance').upsert({
-      id: `perf-${workerId}`,
-      worker_id: workerId,
-      worker_name: worker?.name || '',
-      jobs_completed: newJobs,
-      average_completion_minutes: newAvgMinutes,
-      average_rating: newAvgRating,
-      speed_score: newSpeedScore,
-      quality_score: newQualityScore,
-      level_name: levelName,
-      badge_name: badgeName,
-      extra_commission_rate: extraCommissionRate,
-      updated_at: new Date().toISOString(),
-    });
-  }
-};
 
     setSubmitted(true);
+    setSubmitting(false);
+  };
+
+  const downloadInvoice = () => {
+    const invoiceText = `
+KAKLINX BAY - CUSTOMER INVOICE
+
+Order ID: ${order.id}
+Plate Number: ${order.plate}
+Vehicle Type: ${order.vehicle_type}
+Services: ${(order.services || []).join(', ')}
+Amount: GH₵ ${Number(order.total_amount || 0).toFixed(2)}
+
+Customer Rating: ${rating}/5
+Satisfaction: ${satisfaction}
+Comment: ${comment || 'No comment'}
+
+Status: CLOSED
+Certified At: ${new Date().toLocaleString()}
+`;
+
+    const blob = new Blob([invoiceText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoice_${order.id}.txt`;
+    a.click();
+
+    URL.revokeObjectURL(url);
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-sm text-slate-500">Loading work order...</p>
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
   if (!order) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <div className="bg-white rounded-2xl shadow p-6 max-w-md text-center">
-          <h1 className="text-xl font-bold text-slate-800">Work order not found</h1>
-          <p className="text-sm text-slate-500 mt-2">
-            Please check the QR code or ask the attendant to generate it again.
-          </p>
-        </div>
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center">Work order not found.</div>;
   }
 
   if (submitted || order.closure_status === 'closed') {
@@ -189,10 +108,19 @@ export default function CustomerCertifyPage() {
           <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-4 text-2xl">
             ✓
           </div>
+
           <h1 className="text-xl font-bold text-slate-800">Thank you</h1>
+
           <p className="text-sm text-slate-500 mt-2">
             This work order has been certified and closed successfully.
           </p>
+
+          <button
+            onClick={downloadInvoice}
+            className="mt-5 w-full rounded-lg bg-blue-600 text-white py-3 text-sm font-semibold"
+          >
+            Download Invoice
+          </button>
         </div>
       </div>
     );
@@ -213,6 +141,7 @@ export default function CustomerCertifyPage() {
           <p><strong>Vehicle:</strong> {order.vehicle_type}</p>
           <p><strong>Plate:</strong> {order.plate}</p>
           <p><strong>Services:</strong> {(order.services || []).join(', ')}</p>
+          <p><strong>Amount:</strong> GH₵ {Number(order.total_amount || 0).toFixed(2)}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
@@ -245,10 +174,7 @@ export default function CustomerCertifyPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">
-              Satisfaction
-            </label>
-
+            <label className="block text-sm font-semibold mb-2">Satisfaction</label>
             <select
               value={satisfaction}
               onChange={(e) => setSatisfaction(e.target.value)}
@@ -262,10 +188,7 @@ export default function CustomerCertifyPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">
-              Rating
-            </label>
-
+            <label className="block text-sm font-semibold mb-2">Rating</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -283,10 +206,7 @@ export default function CustomerCertifyPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">
-              Comment optional
-            </label>
-
+            <label className="block text-sm font-semibold mb-2">Comment optional</label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
@@ -298,9 +218,10 @@ export default function CustomerCertifyPage() {
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-blue-600 text-white py-3 text-sm font-semibold"
+            disabled={submitting}
+            className="w-full rounded-lg bg-blue-600 text-white py-3 text-sm font-semibold disabled:bg-slate-400"
           >
-            Certify and Close Work Order
+            {submitting ? 'Submitting...' : 'Certify and Close Work Order'}
           </button>
         </form>
       </div>
