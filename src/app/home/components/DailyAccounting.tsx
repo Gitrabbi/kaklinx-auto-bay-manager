@@ -3,15 +3,11 @@ import React from 'react';
 import { useAppData } from '../../../context/AppDataContext';
 
 export default function DailyAccounting() {
-  const { workOrders, workers } = useAppData();
   const { workOrders, workers, expenditures, getTodayExpenditure } = useAppData();
 
   const today = new Date().toISOString().split('T')[0];
 
-  const todaysOrders = workOrders.filter(order =>
-    order.createdAt?.startsWith(today)
-  );
-
+  const todaysOrders = workOrders.filter(order => order.createdAt?.startsWith(today));
   const completedOrders = todaysOrders.filter(order => order.status === 'Completed');
 
   const totalRevenue = completedOrders.reduce(
@@ -27,13 +23,13 @@ export default function DailyAccounting() {
   const completedCount = completedOrders.length;
   const pendingCount = todaysOrders.filter(order => order.status === 'Pending').length;
   const inProgressCount = todaysOrders.filter(order => order.status === 'In Progress').length;
+
   const todaysExpenditures = expenditures.filter(item => item.date === today);
   const totalExpenditure = getTodayExpenditure();
   const netProfitOrLoss = totalRevenue - totalExpenditure;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Today&apos;s Revenue</p>
@@ -56,13 +52,19 @@ export default function DailyAccounting() {
             {workers.filter(w => w.status === 'active').length}
           </h2>
         </div>
+
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Daily Expenditure</p>
           <h2 className="text-2xl font-bold mt-2">GH₵ {totalExpenditure.toFixed(2)}</h2>
         </div>
+
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Profit / Loss</p>
-          <h2 className={`text-2xl font-bold mt-2 ${netProfitOrLoss < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+          <h2
+            className={`text-2xl font-bold mt-2 ${
+              netProfitOrLoss < 0 ? 'text-red-600' : 'text-emerald-600'
+            }`}
+          >
             GH₵ {netProfitOrLoss.toFixed(2)}
           </h2>
         </div>
@@ -149,4 +151,6 @@ export default function DailyAccounting() {
           </div>
         </div>
       </div>
-src/app/h
+    </div>
+  );
+}
