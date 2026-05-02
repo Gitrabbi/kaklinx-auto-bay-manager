@@ -192,7 +192,6 @@ function dbToWorker(row: any): Worker {
     phone: row.phone || '',
     initials: row.initials || getInitials(row.name || ''),
     status: row.status || 'active',
-@@ -326,91 +340,102 @@ function commissionToDb(c: CommissionRecord) {
 
 function dbToUtilityLog(row: any): UtilityLog {
   return {
@@ -297,7 +296,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       });
       return updated;
     }));
-@@ -533,50 +558,72 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
+
     const newP: PricingItem = { ...p, id: genId('PRC') };
     setPricing(prev => [...prev, newP]);
     supabase.from('pricing').insert(pricingToDb(newP)).then(({ error }) => {
@@ -370,7 +369,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     };
 
     const { error } = await supabase
-@@ -664,46 +711,54 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
+
     );
 
     const electricityCost = Math.max(
