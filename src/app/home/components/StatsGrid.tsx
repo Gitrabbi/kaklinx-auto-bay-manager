@@ -25,12 +25,6 @@ function StatCard({ label, value, icon }: StatCardProps) {
             {label}
           </p>
           <p className="text-2xl font-bold" style={{ color: 'hsl(215 25% 12%)' }}>
-            {label}
-          </p>
-          <p
-            className="text-2xl font-bold"
-            style={{ color: 'hsl(215 25% 12%)' }}
-          >
             {value}
           </p>
         </div>
@@ -54,41 +48,22 @@ interface StatsGridProps {
   netProfitOrLoss: string;
 }
 
-export default function StatsGrid({ todayOrders, activeJobs, todayRevenue, activeWorkers }: StatsGridProps) {
-export default function StatsGrid({ todayOrders, activeJobs, todayRevenue, activeWorkers, todayExpenditure, netProfitOrLoss }: StatsGridProps) {
+export default function StatsGrid({
+  todayOrders,
+  activeJobs,
+  todayRevenue,
+  activeWorkers,
+  todayExpenditure,
+  netProfitOrLoss,
+}: StatsGridProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 stagger-children">
-      <StatCard
-        label="Today's Orders"
-        value={String(todayOrders)}
-        icon={<ClipboardDocumentListIcon className="w-5 h-5" />}
-      />
-      <StatCard
-        label="Active Jobs"
-        value={String(activeJobs)}
-        icon={<ClockIcon className="w-5 h-5" />}
-      />
-      <StatCard
-        label="Today's Revenue"
-        value={todayRevenue}
-        icon={<CurrencyDollarIcon className="w-5 h-5" />}
-      />
-      <StatCard
-        label="Active Workers"
-        value={String(activeWorkers)}
-        icon={<UsersIcon className="w-5 h-5" />}
-      />
-      <StatCard
-        label="Daily Expenditure"
-        value={todayExpenditure}
-        icon={<CurrencyDollarIcon className="w-5 h-5" />}
-      />
-      <StatCard
-        label="Profit / Loss"
-        value={netProfitOrLoss}
-        icon={<CurrencyDollarIcon className="w-5 h-5" />}
-      />
+      <StatCard label="Today's Orders" value={String(todayOrders)} icon={<ClipboardDocumentListIcon className="w-5 h-5" />} />
+      <StatCard label="Active Jobs" value={String(activeJobs)} icon={<ClockIcon className="w-5 h-5" />} />
+      <StatCard label="Today's Revenue" value={todayRevenue} icon={<CurrencyDollarIcon className="w-5 h-5" />} />
+      <StatCard label="Active Workers" value={String(activeWorkers)} icon={<UsersIcon className="w-5 h-5" />} />
+      <StatCard label="Daily Expenditure" value={todayExpenditure} icon={<CurrencyDollarIcon className="w-5 h-5" />} />
+      <StatCard label="Profit / Loss" value={netProfitOrLoss} icon={<CurrencyDollarIcon className="w-5 h-5" />} />
     </div>
   );
 }
