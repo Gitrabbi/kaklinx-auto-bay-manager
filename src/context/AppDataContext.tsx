@@ -43,6 +43,11 @@ export interface WorkOrder {
   closureStatus?: 'open' | 'awaiting_customer' | 'closed';
   targetMinutes?: number;
   qualityPassed?: boolean;
+  extensionMinutes?: number;
+  extensionReasonCategory?: 'operational' | 'worker_inability' | 'customer_extra_requests';
+  extensionReason?: string;
+  autoClosedAt?: string;
+  completedWithinTarget?: boolean;
 }
 
 export interface Worker {
@@ -84,6 +89,7 @@ export interface PricingItem {
   vehicleType: string;
   serviceType: string;
   price: number;
+  recommendedMinutes?: number;
 }
 
 export interface UtilityLog {
@@ -219,6 +225,7 @@ function dbToPricing(row: any): PricingItem {
     vehicleType: row.vehicle_type,
     serviceType: row.service_type,
     price: Number(row.price || 0),
+    recommendedMinutes: Number(row.recommended_minutes || 0),
   };
 }
 
@@ -228,6 +235,7 @@ function pricingToDb(p: PricingItem) {
     vehicle_type: p.vehicleType,
     service_type: p.serviceType,
     price: p.price,
+    recommended_minutes: p.recommendedMinutes || 0,
   };
 }
 
@@ -255,6 +263,11 @@ function dbToWorkOrder(row: any): WorkOrder {
     closureStatus: row.closure_status || 'open',
     targetMinutes: Number(row.target_minutes || 30),
     qualityPassed: row.quality_passed ?? true,
+    extensionMinutes: Number(row.extension_minutes || 0),
+    extensionReasonCategory: row.extension_reason_category || undefined,
+    extensionReason: row.extension_reason || undefined,
+    autoClosedAt: row.auto_closed_at || undefined,
+    completedWithinTarget: row.completed_within_target ?? undefined,
   };
 }
 
@@ -282,6 +295,11 @@ function workOrderToDb(wo: WorkOrder) {
     closure_status: wo.closureStatus || 'open',
     target_minutes: wo.targetMinutes || 30,
     quality_passed: wo.qualityPassed ?? true,
+    extension_minutes: wo.extensionMinutes || 0,
+    extension_reason_category: wo.extensionReasonCategory || null,
+    extension_reason: wo.extensionReason || null,
+    auto_closed_at: wo.autoClosedAt || null,
+    completed_within_target: wo.completedWithinTarget ?? null,
   };
 }
 
@@ -364,28 +382,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [expenditures, setExpenditures] = useState<ExpenditureItem[]>([]);
 
   const loadUtilityLogs = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('utility_logs')
-      .select('*')
-      .order('log_date', { ascending: false });
-
+    const { data, error } = await supabase.from('utility_logs').select('*').order('log_date', { ascending: false });
     if (error) {
       console.error('Load utility logs error:', error.message);
       return;
     }
-
     if (data) setUtilityLogs(data.map(dbToUtilityLog));
   }, []);
 
   const loadAllData = useCallback(async () => {
     const [
-      workersRes,
-      pricingRes,
-      workOrdersRes,
-      attendanceRes,
-      commissionsRes,
-      utilityLogsRes,
-      expendituresRes,
+      workersRes, pricingRes, workOrdersRes, attendanceRes, commissionsRes, utilityLogsRes, expendituresRes,
     ] = await Promise.all([
       supabase.from('workers').select('*').order('name'),
       supabase.from('pricing').select('*').order('vehicle_type'),
@@ -473,12 +480,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       duration = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
     }
 
-    updateWorkOrder(id, {
-      status: 'Completed',
-      completedAt,
-      duration,
-      closureStatus: 'awaiting_customer',
-    });
+    updateWorkOrder(id, { status: 'Completed', completedAt, duration, closureStatus: 'awaiting_customer' });
 
     wo.assignedWorkers.forEach(wid => {
       const worker = workers.find(w => w.id === wid);
@@ -636,9 +638,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       status: 'opening_logged',
     };
 
-    const { error } = await supabase
-      .from('utility_logs')
-      .upsert(row, { onConflict: 'log_date,utility_type' });
+    const { error } = await supabase.from('utility_logs').upsert(row, { onConflict: 'log_date,utility_type' });
 
     if (error) {
       console.error('Save utility opening error:', error.message);
@@ -659,7 +659,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     closingCost: number;
   }) => {
     const hour = new Date().getHours();
-
     if (hour >= 20) {
       alert('Closing entry is closed for today. It must be logged before 8:00 PM.');
       return;
@@ -713,13 +712,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const getTodayUtilitySummary = useCallback(() => {
     const todayStr = todayISO();
 
-    const electricity = utilityLogs.find(
-      log => log.logDate === todayStr && log.utilityType === 'electricity'
-    );
-
-    const water = utilityLogs.find(
-      log => log.logDate === todayStr && log.utilityType === 'water'
-    );
+    const electricity = utilityLogs.find(log => log.logDate === todayStr && log.utilityType === 'electricity');
+    const water = utilityLogs.find(log => log.logDate === todayStr && log.utilityType === 'water');
 
     const electricityConsumption = Math.max(
       Number(electricity?.closingReading || 0) - Number(electricity?.openingReading || 0),
@@ -741,12 +735,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       0
     );
 
-    return {
-      electricityConsumption,
-      electricityCost,
-      waterConsumption,
-      waterCost,
-    };
+    return { electricityConsumption, electricityCost, waterConsumption, waterCost };
   }, [utilityLogs]);
 
   const getTodayExpenditure = useCallback(() => {
