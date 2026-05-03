@@ -7,7 +7,6 @@ import { useAppData } from '@/context/AppDataContext';
 export default function AdminUsersPage() {
   const { workers } = useAppData();
 
-  const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<'admin' | 'cashier' | 'worker'>('worker');
   const [workerId, setWorkerId] = useState('');
   const [email, setEmail] = useState('');
@@ -24,22 +23,23 @@ export default function AdminUsersPage() {
     setSuccessMsg('');
     setErrorMsg('');
 
-    const selectedWorker =
-      role === 'worker'
-        ? workers.find((w: any) => w.id === workerId)
-        : null;
+    const selectedWorker = workers.find((w: any) => w.id === workerId);
+
+    if (!selectedWorker) {
+      setErrorMsg('Please select an existing staff member.');
+      setLoading(false);
+      return;
+    }
 
     const res = await fetch('/api/admin/create-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        fullName: role === 'worker' && selectedWorker
-          ? selectedWorker.name
-          : fullName,
+        fullName: selectedWorker.name,
         email,
         password,
         role,
-        workerId: role === 'worker' ? workerId : null,
+        workerId,
       }),
     });
 
@@ -51,8 +51,7 @@ export default function AdminUsersPage() {
       return;
     }
 
-    setSuccessMsg('User created successfully.');
-    setFullName('');
+    setSuccessMsg('User login created successfully.');
     setEmail('');
     setPassword('');
     setRole('worker');
@@ -69,7 +68,7 @@ export default function AdminUsersPage() {
           </h1>
 
           <p className="text-slate-500 mt-1">
-            Assign system access to an existing worker, cashier, or admin.
+            Select an existing staff member and assign admin, cashier, or worker access.
           </p>
 
           <form onSubmit={handleCreateUser} className="mt-8 space-y-5">
@@ -79,10 +78,9 @@ export default function AdminUsersPage() {
               </label>
               <select
                 value={role}
-                onChange={(e) => {
-                  setRole(e.target.value as 'admin' | 'cashier' | 'worker');
-                  setWorkerId('');
-                }}
+                onChange={(e) =>
+                  setRole(e.target.value as 'admin' | 'cashier' | 'worker')
+                }
                 className="w-full rounded-lg border border-slate-300 px-3 py-2"
               >
                 <option value="admin">Admin</option>
@@ -91,40 +89,24 @@ export default function AdminUsersPage() {
               </select>
             </div>
 
-            {role === 'worker' ? (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Select Existing Worker
-                </label>
-                <select
-                  required
-                  value={workerId}
-                  onChange={(e) => setWorkerId(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
-                >
-                  <option value="">Select worker</option>
-                  {workers.map((worker: any) => (
-                    <option key={worker.id} value={worker.id}>
-                      {worker.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
-                  placeholder="Enter full name"
-                />
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Select Existing Staff
+              </label>
+              <select
+                required
+                value={workerId}
+                onChange={(e) => setWorkerId(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              >
+                <option value="">Select staff member</option>
+                {workers.map((worker: any) => (
+                  <option key={worker.id} value={worker.id}>
+                    {worker.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
