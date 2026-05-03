@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function LoginPage() {
@@ -35,14 +36,16 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border p-8">
         <div className="text-center mb-8">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-bold text-xl">
-            S
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-blue-700 flex items-center justify-center text-white font-bold text-2xl">
+            KA
           </div>
+
           <h1 className="text-2xl font-bold mt-4 text-slate-900">
-            Suds App Login
+            KaklinxAuto Washing Bay
           </h1>
+
           <p className="text-sm text-slate-500 mt-1">
-            Sign in to manage your car wash operations
+            Sign in to manage washing bay operations
           </p>
         </div>
 
@@ -57,7 +60,7 @@ export default function LoginPage() {
               className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@example.com"
+              placeholder="Enter email address"
             />
           </div>
 
@@ -84,11 +87,21 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-2.5 rounded-lg transition"
+            className="w-full bg-blue-700 hover:bg-blue-800 disabled:bg-blue-300 text-white font-semibold py-2.5 rounded-lg transition"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        <div className="mt-6 text-center text-sm text-slate-600">
+          Don&apos;t have an account?{' '}
+          <Link
+            href="/signup"
+            className="font-semibold text-blue-700 hover:underline"
+          >
+            Create account
+          </Link>
+        </div>
       </div>
     </main>
   );
