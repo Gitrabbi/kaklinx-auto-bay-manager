@@ -81,13 +81,8 @@ function DashboardContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl border" style={{ borderColor: 'hsl(210 18% 89%)' }}>
-            <div
-              className="p-5 border-b flex items-center justify-between"
-              style={{ borderColor: 'hsl(210 18% 89%)' }}
-            >
-              <h2 className="font-semibold" style={{ color: 'hsl(215 25% 12%)' }}>
-                Recent Work Orders
-              </h2>
+            <div className="p-5 border-b flex items-center justify-between" style={{ borderColor: 'hsl(210 18% 89%)' }}>
+              <h2 className="font-semibold" style={{ color: 'hsl(215 25% 12%)' }}>Recent Work Orders</h2>
               <span className="text-xs" style={{ color: 'hsl(215 10% 48%)' }}>
                 {workOrders.filter(o => o.status === 'Completed').length} completed today
               </span>
@@ -102,30 +97,12 @@ function DashboardContent() {
             ) : (
               <div className="divide-y" style={{ borderColor: 'hsl(210 18% 89%)' }}>
                 {recentOrders.map(order => (
-                  <div
-                    key={order.id}
-                    className="px-5 py-3.5 flex items-center gap-4 table-row-hover transition-colors"
-                  >
-                    <div
-                      className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: 'hsla(205,78%,42%,0.1)' }}
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        style={{ color: 'hsl(205 78% 42%)' }}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                        />
+                  <div key={order.id} className="px-5 py-3.5 flex items-center gap-4 table-row-hover transition-colors">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'hsla(205,78%,42%,0.1)' }}>
+                      <svg className="w-4 h-4" style={{ color: 'hsl(205 78% 42%)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                       </svg>
                     </div>
-
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate" style={{ color: 'hsl(215 25% 12%)' }}>
                         {order.plate} — {order.vehicleType}
@@ -134,7 +111,6 @@ function DashboardContent() {
                         {order.services.join(', ') || 'No services'}
                       </p>
                     </div>
-
                     <span
                       className={`px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 ${
                         order.status === 'Completed'
@@ -158,9 +134,7 @@ function DashboardContent() {
         <div>
           <div className="bg-white rounded-xl border" style={{ borderColor: 'hsl(210 18% 89%)' }}>
             <div className="p-5 border-b" style={{ borderColor: 'hsl(210 18% 89%)' }}>
-              <h2 className="font-semibold" style={{ color: 'hsl(215 25% 12%)' }}>
-                Active Workers
-              </h2>
+              <h2 className="font-semibold" style={{ color: 'hsl(215 25% 12%)' }}>Active Workers</h2>
             </div>
 
             {workers.filter(w => w.status === 'active').length === 0 ? (
@@ -171,45 +145,24 @@ function DashboardContent() {
               </div>
             ) : (
               <div className="divide-y" style={{ borderColor: 'hsl(210 18% 89%)' }}>
-                {workers
-                  .filter(w => w.status === 'active')
-                  .map(worker => (
-                    <div
-                      key={worker.id}
-                      className="px-5 py-3.5 flex items-center gap-3 table-row-hover transition-colors"
-                    >
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
-                        style={{ backgroundColor: 'hsla(25,95%,53%,0.15)', color: 'hsl(25 95% 53%)' }}
-                      >
-                        {worker.initials}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate" style={{ color: 'hsl(215 25% 12%)' }}>
-                          {worker.name}
-                        </p>
-                        <p className="text-xs" style={{ color: 'hsl(215 10% 48%)' }}>
-                          {worker.phone}
-                        </p>
-                      </div>
-
-                      <span
-                        className="text-xs font-medium hidden sm:block shrink-0"
-                        style={{ color: 'hsl(215 10% 48%)' }}
-                      >
-                        {worker.jobsToday} jobs
-                      </span>
-
-                      <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                {workers.filter(w => w.status === 'active').map(worker => (
+                  <div key={worker.id} className="px-5 py-3.5 flex items-center gap-3 table-row-hover transition-colors">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
+                      style={{ backgroundColor: 'hsla(25,95%,53%,0.15)', color: 'hsl(25 95% 53%)' }}>
+                      {worker.initials}
                     </div>
-                  ))}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: 'hsl(215 25% 12%)' }}>{worker.name}</p>
+                      <p className="text-xs" style={{ color: 'hsl(215 10% 48%)' }}>{worker.phone}</p>
+                    </div>
+                    <span className="text-xs font-medium hidden sm:block shrink-0" style={{ color: 'hsl(215 10% 48%)' }}>
+                      {worker.jobsToday} jobs
+                    </span>
+                    <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -262,9 +215,7 @@ export default function HomePage() {
       default:
         return (
           <div className="bg-white rounded-xl border p-12 text-center" style={{ borderColor: 'hsl(210 18% 89%)' }}>
-            <p className="text-sm" style={{ color: 'hsl(215 10% 48%)' }}>
-              This section is coming soon.
-            </p>
+            <p className="text-sm" style={{ color: 'hsl(215 10% 48%)' }}>This section is coming soon.</p>
           </div>
         );
     }
@@ -289,14 +240,9 @@ export default function HomePage() {
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           <div className="fade-in space-y-4">
             <div>
-              <h1 className="text-2xl font-bold" style={{ color: 'hsl(215 25% 12%)' }}>
-                {title}
-              </h1>
-              <p className="text-sm mt-1" style={{ color: 'hsl(215 10% 48%)' }}>
-                {subtitle}
-              </p>
+              <h1 className="text-2xl font-bold" style={{ color: 'hsl(215 25% 12%)' }}>{title}</h1>
+              <p className="text-sm mt-1" style={{ color: 'hsl(215 10% 48%)' }}>{subtitle}</p>
             </div>
-
             {renderContent()}
           </div>
         </main>
