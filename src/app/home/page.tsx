@@ -223,6 +223,7 @@ export default function HomePage() {
   };
 
   return (
+  <AuthGuard allowedRoles={['admin', 'cashier', 'worker']}>
     <div className="flex h-screen font-inter overflow-hidden" style={{ backgroundColor: 'hsl(210 20% 98%)' }}>
       <Sidebar
         todayRevenue={`GH₵ ${todayRevenue.toFixed(2)}`}
@@ -249,5 +250,6 @@ export default function HomePage() {
         </main>
       </div>
     </div>
-  );
+  </AuthGuard>
+);
 }
