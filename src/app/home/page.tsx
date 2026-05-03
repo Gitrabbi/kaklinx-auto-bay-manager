@@ -1,4 +1,6 @@
 'use client';
+import MyWorkerJobs from './components/MyWorkerJobs';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import AuthGuard from '@/components/AuthGuard';
 import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
