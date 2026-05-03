@@ -8,9 +8,7 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-
-    const { fullName, email, password, role } = body;
+    const { fullName, email, password, role, workerId } = await req.json();
 
     if (!fullName || !email || !password || !role) {
       return NextResponse.json(
@@ -22,6 +20,13 @@ export async function POST(req: Request) {
     if (!['admin', 'cashier', 'worker'].includes(role)) {
       return NextResponse.json(
         { error: 'Invalid role selected.' },
+        { status: 400 }
+      );
+    }
+
+    if (role === 'worker' && !workerId) {
+      return NextResponse.json(
+        { error: 'Please select the worker this login belongs to.' },
         { status: 400 }
       );
     }
@@ -48,6 +53,7 @@ export async function POST(req: Request) {
         id: userId,
         full_name: fullName,
         role,
+        worker_id: role === 'worker' ? workerId : null,
       });
 
     if (profileError) {
@@ -61,7 +67,7 @@ export async function POST(req: Request) {
       success: true,
       message: 'User created successfully.',
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Something went wrong while creating user.' },
       { status: 500 }
