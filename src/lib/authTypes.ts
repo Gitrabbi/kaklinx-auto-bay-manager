@@ -4,4 +4,5 @@ export interface UserProfile {
   id: string;
   full_name: string | null;
   role: UserRole;
+  worker_id?: string | null;
 }
