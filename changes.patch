@@ -1,0 +1,107 @@
+
+diff --git a/src/context/AppDataContext.tsx b/src/context/AppDataContext.tsx
+index 0000000..0000000 100644
+--- a/src/context/AppDataContext.tsx
++++ b/src/context/AppDataContext.tsx
+@@
+ export interface PricingItem {
+   id: string;
+   vehicleType: string;
+   serviceType: string;
+   price: number;
++  recommendedMinutes?: number;
+ }
+@@
+ function dbToPricing(row: any): PricingItem {
+   return {
+     id: row.id,
+     vehicleType: row.vehicle_type,
+     serviceType: row.service_type,
+     price: Number(row.price || 0),
++    recommendedMinutes: Number(row.recommended_minutes || 0),
+   };
+ }
+@@
+ function pricingToDb(p: PricingItem) {
+   return {
+     id: p.id,
+     vehicle_type: p.vehicleType,
+     service_type: p.serviceType,
+     price: p.price,
++    recommended_minutes: p.recommendedMinutes || 0,
+   };
+ }
+
+diff --git a/src/app/home/components/PricingManager.tsx b/src/app/home/components/PricingManager.tsx
+index 0000000..0000000 100644
+--- a/src/app/home/components/PricingManager.tsx
++++ b/src/app/home/components/PricingManager.tsx
+@@
+ interface FormState {
+   vehicleType: string;
+   serviceType: string;
+   price: string;
++  recommendedMinutes: string;
+ }
+ 
+-const emptyForm: FormState = { vehicleType: VEHICLE_TYPES[0], serviceType: SERVICE_TYPES[0], price: '' };
++const emptyForm: FormState = { vehicleType: VEHICLE_TYPES[0], serviceType: SERVICE_TYPES[0], price: '', recommendedMinutes: '' };
+@@
+   const openEdit = (p: PricingItem) => {
+-    setForm({ vehicleType: p.vehicleType, serviceType: p.serviceType, price: p.price.toString() });
++    setForm({
++      vehicleType: p.vehicleType,
++      serviceType: p.serviceType,
++      price: p.price.toString(),
++      recommendedMinutes: String(p.recommendedMinutes || ''),
++    });
+     setEditId(p.id);
+     setShowForm(true);
+   };
+@@
+-    const payload = { vehicleType: form.vehicleType, serviceType: form.serviceType, price: parseFloat(form.price) };
++    const payload = {
++      vehicleType: form.vehicleType,
++      serviceType: form.serviceType,
++      price: parseFloat(form.price),
++      recommendedMinutes: Number(form.recommendedMinutes || 0),
++    };
+@@
+-                  {['Vehicle Type', 'Service', 'Price (GH₵)', 'Actions'].map(h => (
++                  {['Vehicle Type', 'Service', 'Price (GH₵)', 'Timeline (min)', 'Actions'].map(h => (
+@@
+                     <td className="px-4 py-3 text-sm font-bold" style={{ color: 'hsl(205 78% 42%)' }}>GH₵ {p.price.toFixed(2)}</td>
++                    <td className="px-4 py-3 text-sm" style={{ color: 'hsl(215 25% 12%)' }}>{p.recommendedMinutes || 0}</td>
+                     <td className="px-4 py-3">
+@@
+               <div>
+                 <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>Price (GH₵) *</label>
+                 <input required type="number" min="0" step="0.01" value={form.price}
+                   onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+                   placeholder="0.00"
+                   className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2" style={{ borderColor: 'hsl(210 18% 89%)' }} />
+               </div>
++              <div>
++                <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>Recommended Timeline (minutes)</label>
++                <input type="number" min="0" step="1" value={form.recommendedMinutes}
++                  onChange={e => setForm(f => ({ ...f, recommendedMinutes: e.target.value }))}
++                  placeholder="e.g. 20"
++                  className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2" style={{ borderColor: 'hsl(210 18% 89%)' }} />
++              </div>
+
+diff --git a/src/app/home/components/WorkOrdersManager.tsx b/src/app/home/components/WorkOrdersManager.tsx
+index 0000000..0000000 100644
+--- a/src/app/home/components/WorkOrdersManager.tsx
++++ b/src/app/home/components/WorkOrdersManager.tsx
+@@
+-  const calculateRecommendedMinutes = (selectedServices: string[]) =>
+-    selectedServices.reduce((sum, service) => sum + (SERVICE_TIMELINES[service] || 0), 0);
++  const calculateRecommendedMinutes = (vehicleType: string, selectedServices: string[]) =>
++    selectedServices.reduce((sum, service) => {
++      const priceRow = pricing.find((p) => p.vehicleType === vehicleType && p.serviceType === service);
++      return sum + Number(priceRow?.recommendedMinutes || 0);
++    }, 0);
+@@
+-      targetMinutes: calculateRecommendedMinutes(form.services),
++      targetMinutes: calculateRecommendedMinutes(form.vehicleType, form.services),
+

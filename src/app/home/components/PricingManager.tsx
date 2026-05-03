@@ -10,9 +10,11 @@ interface FormState {
   vehicleType: string;
   serviceType: string;
   price: string;
+  recommendedMinutes: string;
 }
 
 const emptyForm: FormState = { vehicleType: VEHICLE_TYPES[0], serviceType: SERVICE_TYPES[0], price: '' };
+const emptyForm: FormState = { vehicleType: VEHICLE_TYPES[0], serviceType: SERVICE_TYPES[0], price: '', recommendedMinutes: '' };
 
 export default function PricingManager() {
   const { pricing, addPricing, updatePricing, deletePricing } = useAppData();
@@ -26,6 +28,7 @@ export default function PricingManager() {
   const openCreate = () => { setForm(emptyForm); setEditId(null); setShowForm(true); };
   const openEdit = (p: PricingItem) => {
     setForm({ vehicleType: p.vehicleType, serviceType: p.serviceType, price: p.price.toString() });
+    setForm({ vehicleType: p.vehicleType, serviceType: p.serviceType, price: p.price.toString(), recommendedMinutes: String(p.recommendedMinutes || '') });
     setEditId(p.id);
     setShowForm(true);
   };
@@ -34,6 +37,7 @@ export default function PricingManager() {
     e.preventDefault();
     if (!form.price) return;
     const payload = { vehicleType: form.vehicleType, serviceType: form.serviceType, price: parseFloat(form.price) };
+    const payload = { vehicleType: form.vehicleType, serviceType: form.serviceType, price: parseFloat(form.price), recommendedMinutes: Number(form.recommendedMinutes || 0) };
     if (editId) {
       updatePricing(editId, payload);
     } else {
@@ -59,9 +63,7 @@ export default function PricingManager() {
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex gap-2 flex-wrap items-center">
           <div className="relative">
-            <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'hsl(215 10% 48%)' }} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search pricing..."
-              className="pl-9 pr-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 w-48" style={{ borderColor: 'hsl(210 18% 89%)' }} />
+
           </div>
           <select value={filterVehicle} onChange={e => setFilterVehicle(e.target.value)}
             className="px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2" style={{ borderColor: 'hsl(210 18% 89%)' }}>
@@ -88,6 +90,7 @@ export default function PricingManager() {
               <thead>
                 <tr style={{ backgroundColor: 'hsl(210 20% 98%)', borderBottom: '1px solid hsl(210 18% 89%)' }}>
                   {['Vehicle Type', 'Service', 'Price (GH₵)', 'Actions'].map(h => (
+                  {['Vehicle Type', 'Service', 'Price (GH₵)', 'Timeline (min)', 'Actions'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'hsl(215 10% 48%)' }}>{h}</th>
                   ))}
                 </tr>
@@ -98,6 +101,7 @@ export default function PricingManager() {
                     <td className="px-4 py-3 font-medium text-sm" style={{ color: 'hsl(215 25% 12%)' }}>{p.vehicleType}</td>
                     <td className="px-4 py-3 text-sm" style={{ color: 'hsl(215 10% 48%)' }}>{p.serviceType}</td>
                     <td className="px-4 py-3 text-sm font-bold" style={{ color: 'hsl(205 78% 42%)' }}>GH₵ {p.price.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm" style={{ color: 'hsl(215 25% 12%)' }}>{p.recommendedMinutes || 0}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-blue-50 transition-colors">
@@ -148,6 +152,13 @@ export default function PricingManager() {
                   placeholder="0.00"
                   className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2" style={{ borderColor: 'hsl(210 18% 89%)' }} />
               </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>Recommended Timeline (minutes)</label>
+                <input type="number" min="0" step="1" value={form.recommendedMinutes}
+                  onChange={e => setForm(f => ({ ...f, recommendedMinutes: e.target.value }))}
+                  placeholder="e.g. 20"
+                  className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2" style={{ borderColor: 'hsl(210 18% 89%)' }} />
+              </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowForm(false)}
                   className="flex-1 py-2.5 rounded-lg border text-sm font-medium hover:bg-gray-50"
@@ -173,7 +184,3 @@ export default function PricingManager() {
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
-}
