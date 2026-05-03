@@ -3,21 +3,14 @@ import React from 'react';
 import { useAppData } from '../../../context/AppDataContext';
 
 export default function DailyAccounting() {
-  const { workOrders, workers } = useAppData();
   const { workOrders, workers, expenditures, getTodayExpenditure } = useAppData();
 
   const today = new Date().toISOString().split('T')[0];
 
-  const todaysOrders = workOrders.filter(order =>
-    order.createdAt?.startsWith(today)
-  );
-
+  const todaysOrders = workOrders.filter(order => order.createdAt?.startsWith(today));
   const completedOrders = todaysOrders.filter(order => order.status === 'Completed');
 
-  const totalRevenue = completedOrders.reduce(
-    (sum, order) => sum + Number(order.totalAmount || 0),
-    0
-  );
+  const totalRevenue = completedOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
 
   const pendingAmount = todaysOrders
     .filter(order => order.status !== 'Completed' && order.status !== 'Cancelled')
@@ -27,13 +20,13 @@ export default function DailyAccounting() {
   const completedCount = completedOrders.length;
   const pendingCount = todaysOrders.filter(order => order.status === 'Pending').length;
   const inProgressCount = todaysOrders.filter(order => order.status === 'In Progress').length;
+
   const todaysExpenditures = expenditures.filter(item => item.date === today);
   const totalExpenditure = getTodayExpenditure();
   const netProfitOrLoss = totalRevenue - totalExpenditure;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Today&apos;s Revenue</p>
@@ -52,14 +45,14 @@ export default function DailyAccounting() {
 
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Active Workers</p>
-          <h2 className="text-2xl font-bold mt-2">
-            {workers.filter(w => w.status === 'active').length}
-          </h2>
+          <h2 className="text-2xl font-bold mt-2">{workers.filter(w => w.status === 'active').length}</h2>
         </div>
+
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Daily Expenditure</p>
           <h2 className="text-2xl font-bold mt-2">GH₵ {totalExpenditure.toFixed(2)}</h2>
         </div>
+
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Profit / Loss</p>
           <h2 className={`text-2xl font-bold mt-2 ${netProfitOrLoss < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
@@ -70,7 +63,6 @@ export default function DailyAccounting() {
 
       <div className="bg-white rounded-xl border p-5">
         <h2 className="font-semibold mb-4">Daily Order Accounting</h2>
-
         {todaysOrders.length === 0 ? (
           <p className="text-sm text-slate-500">No orders recorded today.</p>
         ) : (
@@ -94,9 +86,7 @@ export default function DailyAccounting() {
                     <td>{order.vehicleType}</td>
                     <td>{order.services?.join(', ')}</td>
                     <td>{order.status}</td>
-                    <td className="text-right font-semibold">
-                      GH₵ {Number(order.totalAmount || 0).toFixed(2)}
-                    </td>
+                    <td className="text-right font-semibold">GH₵ {Number(order.totalAmount || 0).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -126,27 +116,25 @@ export default function DailyAccounting() {
 
       <div className="bg-white rounded-xl border p-5">
         <h2 className="font-semibold mb-4">Today&apos;s Status Summary</h2>
-
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="rounded-lg bg-emerald-50 p-4">
             <p className="text-xs text-emerald-700">Completed</p>
             <h3 className="text-xl font-bold text-emerald-800">{completedCount}</h3>
           </div>
-
           <div className="rounded-lg bg-blue-50 p-4">
             <p className="text-xs text-blue-700">In Progress</p>
             <h3 className="text-xl font-bold text-blue-800">{inProgressCount}</h3>
           </div>
-
           <div className="rounded-lg bg-amber-50 p-4">
             <p className="text-xs text-amber-700">Pending</p>
             <h3 className="text-xl font-bold text-amber-800">{pendingCount}</h3>
           </div>
-
           <div className="rounded-lg bg-slate-50 p-4">
             <p className="text-xs text-slate-700">Total Orders</p>
             <h3 className="text-xl font-bold text-slate-800">{totalOrders}</h3>
           </div>
         </div>
       </div>
-src/app/home/component
+    </div>
+  );
+}
