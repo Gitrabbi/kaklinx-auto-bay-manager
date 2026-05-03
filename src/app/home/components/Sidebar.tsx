@@ -1,4 +1,5 @@
 'use client';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import React from 'react';
 import {
   Squares2X2Icon,
