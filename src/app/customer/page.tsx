@@ -21,6 +21,24 @@ export default function CustomerPortalPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  function getServiceName(service: any) {
+    return (
+      service.serviceName ||
+      service.service ||
+      service.name ||
+      service.service_name ||
+      'Unnamed Service'
+    );
+  }
+
+  function getServicePrice(service: any) {
+    return Number(service.price || service.amount || service.cost || 0);
+  }
+
+  function getServiceKey(service: any, index: number) {
+    return String(service.id || `${getServiceName(service)}-${index}`);
+  }
+
   const availableVehicleTypes = useMemo(() => {
     const types = pricing.map((p: any) => p.vehicleType).filter(Boolean);
     return Array.from(new Set(types));
@@ -33,15 +51,21 @@ export default function CustomerPortalPage() {
 
   const totalAmount = useMemo(() => {
     return servicesForVehicle
-      .filter((service: any) => selectedServices.includes(service.serviceName))
-      .reduce((sum: number, service: any) => sum + Number(service.price || 0), 0);
+      .filter((service: any, index: number) => {
+        const serviceKey = getServiceKey(service, index);
+        return selectedServices.includes(serviceKey);
+      })
+      .reduce(
+        (sum: number, service: any) => sum + getServicePrice(service),
+        0
+      );
   }, [servicesForVehicle, selectedServices]);
 
-  function toggleService(serviceName: string) {
+  function toggleService(serviceKey: string) {
     setSelectedServices((prev) =>
-      prev.includes(serviceName)
-        ? prev.filter((s) => s !== serviceName)
-        : [...prev, serviceName]
+      prev.includes(serviceKey)
+        ? prev.filter((s) => s !== serviceKey)
+        : [...prev, serviceKey]
     );
   }
 
@@ -59,10 +83,13 @@ export default function CustomerPortalPage() {
     }
 
     const selectedServiceDetails = servicesForVehicle
-      .filter((service: any) => selectedServices.includes(service.serviceName))
+      .filter((service: any, index: number) => {
+        const serviceKey = getServiceKey(service, index);
+        return selectedServices.includes(serviceKey);
+      })
       .map((service: any) => ({
-        serviceName: service.serviceName,
-        price: Number(service.price || 0),
+        serviceName: getServiceName(service),
+        price: getServicePrice(service),
       }));
 
     const { error } = await supabase.from('customer_orders').insert({
@@ -85,7 +112,9 @@ export default function CustomerPortalPage() {
       return;
     }
 
-    setSuccessMsg('Your order has been submitted successfully. Our team will review it shortly.');
+    setSuccessMsg(
+      'Your order has been submitted successfully. Our team will review it shortly.'
+    );
 
     setCustomerName('');
     setPhone('');
@@ -186,25 +215,31 @@ export default function CustomerPortalPage() {
                 </h3>
 
                 <div className="space-y-2">
-                  {servicesForVehicle.map((service: any) => (
-                    <label
-                      key={service.id || service.serviceName}
-                      className="flex items-center justify-between border rounded-lg px-3 py-2 cursor-pointer"
-                    >
-                      <span className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedServices.includes(service.serviceName)}
-                          onChange={() => toggleService(service.serviceName)}
-                        />
-                        {service.serviceName}
-                      </span>
+                  {servicesForVehicle.map((service: any, index: number) => {
+                    const serviceName = getServiceName(service);
+                    const servicePrice = getServicePrice(service);
+                    const serviceKey = getServiceKey(service, index);
 
-                      <span className="font-semibold">
-                        GHS {Number(service.price || 0).toFixed(2)}
-                      </span>
-                    </label>
-                  ))}
+                    return (
+                      <label
+                        key={serviceKey}
+                        className="flex items-center justify-between border rounded-lg px-3 py-2 cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedServices.includes(serviceKey)}
+                            onChange={() => toggleService(serviceKey)}
+                          />
+                          {serviceName}
+                        </span>
+
+                        <span className="font-semibold">
+                          GHS {servicePrice.toFixed(2)}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -243,7 +278,9 @@ export default function CustomerPortalPage() {
           <div className="mt-4 space-y-2 text-sm">
             <p>
               <span className="text-slate-500">Vehicle Type:</span>{' '}
-              <span className="font-semibold">{vehicleType || 'Not selected'}</span>
+              <span className="font-semibold">
+                {vehicleType || 'Not selected'}
+              </span>
             </p>
 
             <p>
