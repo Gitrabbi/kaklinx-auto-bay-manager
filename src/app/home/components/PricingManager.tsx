@@ -13,8 +13,12 @@ interface FormState {
   recommendedMinutes: string;
 }
 
-const emptyForm: FormState = { vehicleType: VEHICLE_TYPES[0], serviceType: SERVICE_TYPES[0], price: '' };
-const emptyForm: FormState = { vehicleType: VEHICLE_TYPES[0], serviceType: SERVICE_TYPES[0], price: '', recommendedMinutes: '' };
+const emptyForm: FormState = {
+  vehicleType: VEHICLE_TYPES[0],
+  serviceType: SERVICE_TYPES[0],
+  price: '',
+  recommendedMinutes: '',
+};
 
 export default function PricingManager() {
   const { pricing, addPricing, updatePricing, deletePricing } = useAppData();
@@ -27,8 +31,12 @@ export default function PricingManager() {
 
   const openCreate = () => { setForm(emptyForm); setEditId(null); setShowForm(true); };
   const openEdit = (p: PricingItem) => {
-    setForm({ vehicleType: p.vehicleType, serviceType: p.serviceType, price: p.price.toString() });
-    setForm({ vehicleType: p.vehicleType, serviceType: p.serviceType, price: p.price.toString(), recommendedMinutes: String(p.recommendedMinutes || '') });
+    setForm({
+      vehicleType: p.vehicleType,
+      serviceType: p.serviceType,
+      price: p.price.toString(),
+      recommendedMinutes: String(p.recommendedMinutes || ''),
+    });
     setEditId(p.id);
     setShowForm(true);
   };
@@ -36,13 +44,14 @@ export default function PricingManager() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.price) return;
-    const payload = { vehicleType: form.vehicleType, serviceType: form.serviceType, price: parseFloat(form.price) };
-    const payload = { vehicleType: form.vehicleType, serviceType: form.serviceType, price: parseFloat(form.price), recommendedMinutes: Number(form.recommendedMinutes || 0) };
-    if (editId) {
-      updatePricing(editId, payload);
-    } else {
-      addPricing(payload);
-    }
+    const payload = {
+      vehicleType: form.vehicleType,
+      serviceType: form.serviceType,
+      price: parseFloat(form.price),
+      recommendedMinutes: Number(form.recommendedMinutes || 0),
+    };
+    if (editId) updatePricing(editId, payload);
+    else addPricing(payload);
     setShowForm(false);
     setEditId(null);
     setForm(emptyForm);
@@ -51,7 +60,8 @@ export default function PricingManager() {
   const vehicleGroups = ['All', ...Array.from(new Set(pricing.map(p => p.vehicleType)))];
 
   const filtered = pricing.filter(p => {
-    const matchSearch = p.vehicleType.toLowerCase().includes(search.toLowerCase()) ||
+    const matchSearch =
+      p.vehicleType.toLowerCase().includes(search.toLowerCase()) ||
       p.serviceType.toLowerCase().includes(search.toLowerCase());
     const matchVehicle = filterVehicle === 'All' || p.vehicleType === filterVehicle;
     return matchSearch && matchVehicle;
@@ -59,24 +69,36 @@ export default function PricingManager() {
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex gap-2 flex-wrap items-center">
           <div className="relative">
-
+            <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'hsl(215 10% 48%)' }} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search pricing..."
+              className="pl-9 pr-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 w-48"
+              style={{ borderColor: 'hsl(210 18% 89%)' }}
+            />
           </div>
-          <select value={filterVehicle} onChange={e => setFilterVehicle(e.target.value)}
-            className="px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2" style={{ borderColor: 'hsl(210 18% 89%)' }}>
+          <select
+            value={filterVehicle}
+            onChange={e => setFilterVehicle(e.target.value)}
+            className="px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2"
+            style={{ borderColor: 'hsl(210 18% 89%)' }}
+          >
             {vehicleGroups.map(v => <option key={v} value={v}>{v}</option>)}
           </select>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white shrink-0"
-          style={{ backgroundColor: 'hsl(205 78% 42%)' }}>
+        <button
+          onClick={openCreate}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white shrink-0"
+          style={{ backgroundColor: 'hsl(205 78% 42%)' }}
+        >
           <PlusIcon className="w-4 h-4" /> Add Price
         </button>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: 'hsl(210 18% 89%)' }}>
         {filtered.length === 0 ? (
           <div className="p-12 text-center">
@@ -89,7 +111,6 @@ export default function PricingManager() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: 'hsl(210 20% 98%)', borderBottom: '1px solid hsl(210 18% 89%)' }}>
-                  {['Vehicle Type', 'Service', 'Price (GH₵)', 'Actions'].map(h => (
                   {['Vehicle Type', 'Service', 'Price (GH₵)', 'Timeline (min)', 'Actions'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'hsl(215 10% 48%)' }}>{h}</th>
                   ))}
@@ -120,7 +141,6 @@ export default function PricingManager() {
         )}
       </div>
 
-      {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
@@ -171,7 +191,6 @@ export default function PricingManager() {
         </div>
       )}
 
-      {/* Confirm Delete */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
@@ -184,3 +203,7 @@ export default function PricingManager() {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
