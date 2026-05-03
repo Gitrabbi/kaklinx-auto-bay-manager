@@ -179,18 +179,20 @@ function DashboardContent() {
 
 export default function HomePage() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState<Section>('#dashboard');
+  const [activeSection, setActiveSection] = useState<Section>('#work-orders');
   const { getTodayRevenue } = useAppData();
 
   const { title, subtitle } = sectionTitles[activeSection];
   const todayRevenue = getTodayRevenue();
+  const { profile } = useUserProfile();
+  const role = profile?.role;
 
   const renderContent = () => {
     switch (activeSection) {
       case '#dashboard':
         return <DashboardContent />;
       case '#work-orders':
-        return <WorkOrdersManager />;
+        return role === 'worker' ? <MyWorkerJobs /> : <WorkOrdersManager />;;
       case '#workers':
         return <WorkersManager />;
       case '#attendance':
