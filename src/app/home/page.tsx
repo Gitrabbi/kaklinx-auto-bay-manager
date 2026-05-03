@@ -1,4 +1,5 @@
 'use client';
+import AuthGuard from '@/components/AuthGuard';
 import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import TopHeader from './components/TopHeader';
