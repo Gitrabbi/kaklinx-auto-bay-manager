@@ -20,16 +20,21 @@ export default function CustomerPortalPage() {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-
-  function getServiceName(service: any) {
-    return (
-      service.serviceName ||
-      service.service ||
-      service.name ||
-      service.service_name ||
-      'Unnamed Service'
-    );
-  }
+function getServiceName(service: any) {
+  return (
+    service.serviceName ||
+    service.service_name ||
+    service.service ||
+    service.name ||
+    service.description ||
+    service.serviceType ||
+    service.service_type ||
+    service.title ||
+    service.label ||
+    service.type ||
+    'Unnamed Service'
+  );
+}
 
   function getServicePrice(service: any) {
     return Number(service.price || service.amount || service.cost || 0);
@@ -216,6 +221,7 @@ export default function CustomerPortalPage() {
 
                 <div className="space-y-2">
                   {servicesForVehicle.map((service: any, index: number) => {
+                    console.log('SERVICE DATA:', service);
                     const serviceName = getServiceName(service);
                     const servicePrice = getServicePrice(service);
                     const serviceKey = getServiceKey(service, index);
