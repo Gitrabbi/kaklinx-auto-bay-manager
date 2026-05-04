@@ -9,18 +9,23 @@ export default function CustomerOrdersManager() {
   const [message, setMessage] = useState('');
 
   async function loadOrders() {
-    setLoading(true);
+  setLoading(true);
+  setMessage('');
 
-    const { data, error } = await supabase
-      .from('customer_orders')
-      .select('*')
-      .order('created_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('customer_orders')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setOrders(data);
-    }
-
+  if (error) {
+    setMessage(`Error loading orders: ${error.message}`);
+    setOrders([]);
     setLoading(false);
+    return;
+  }
+
+  setOrders(data || []);
+  setLoading(false);
   }
 
   useEffect(() => {
