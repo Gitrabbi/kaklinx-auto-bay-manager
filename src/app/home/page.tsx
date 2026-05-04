@@ -208,6 +208,8 @@ export default function HomePage() {
         return <PricingManager />;
       case '#utilities':
         return <UtilityTracker />;
+      case '#customer-orders':
+        return <CustomerOrdersManager />;
       case '#analytics':
         return (
           <div className="space-y-6">
