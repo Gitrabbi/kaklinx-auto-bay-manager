@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { useAppData } from '@/context/AppDataContext';
 
@@ -20,6 +21,71 @@ export default function CustomerPortalPage() {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const heroImages = [
+    'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1400&q=80',
+    'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&w=1400&q=80',
+    'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=1400&q=80',
+    'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=1400&q=80',
+    'https://images.unsplash.com/photo-1603386329225-868f9b1ee6c9?auto=format&fit=crop&w=1400&q=80',
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
+    }, 4500);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const savedData = localStorage.getItem('kaklinx_customer_order');
+
+    if (!savedData) return;
+
+    try {
+      const data = JSON.parse(savedData);
+
+      setCustomerName(data.customerName || '');
+      setPhone(data.phone || '');
+      setEmail(data.email || '');
+      setVehicleMake(data.vehicleMake || '');
+      setVehicleModel(data.vehicleModel || '');
+      setLicensePlate(data.licensePlate || '');
+      setVehicleType(data.vehicleType || '');
+      setSelectedServices(data.selectedServices || []);
+      setNotes(data.notes || '');
+    } catch {
+      localStorage.removeItem('kaklinx_customer_order');
+    }
+  }, []);
+
+  useEffect(() => {
+    const data = {
+      customerName,
+      phone,
+      email,
+      vehicleMake,
+      vehicleModel,
+      licensePlate,
+      vehicleType,
+      selectedServices,
+      notes,
+    };
+
+    localStorage.setItem('kaklinx_customer_order', JSON.stringify(data));
+  }, [
+    customerName,
+    phone,
+    email,
+    vehicleMake,
+    vehicleModel,
+    licensePlate,
+    vehicleType,
+    selectedServices,
+    notes,
+  ]);
 
   function getServiceName(service: any) {
     return (
@@ -119,6 +185,8 @@ export default function CustomerPortalPage() {
       return;
     }
 
+    localStorage.removeItem('kaklinx_customer_order');
+
     setSuccessMsg(
       'Your order has been submitted successfully. Our team will review it shortly.'
     );
@@ -150,12 +218,21 @@ export default function CustomerPortalPage() {
               />
             </div>
 
-            <button
-              onClick={scrollToOrder}
-              className="hidden sm:inline-flex bg-white text-blue-950 font-bold px-5 py-3 rounded-xl hover:bg-blue-50 transition"
-            >
-              Book a Wash
-            </button>
+            <div className="flex gap-3">
+              <Link
+                href="/customer/orders"
+                className="hidden sm:inline-flex bg-white/10 border border-white/20 text-white font-bold px-5 py-3 rounded-xl hover:bg-white/20 transition"
+              >
+                Track My Orders
+              </Link>
+
+              <button
+                onClick={scrollToOrder}
+                className="hidden sm:inline-flex bg-white text-blue-950 font-bold px-5 py-3 rounded-xl hover:bg-blue-50 transition"
+              >
+                Book a Wash
+              </button>
+            </div>
           </header>
 
           <div className="grid lg:grid-cols-2 gap-10 items-center py-12">
@@ -169,9 +246,8 @@ export default function CustomerPortalPage() {
               </h1>
 
               <p className="text-blue-100 text-lg mt-5 max-w-xl">
-                Select your vehicle type, choose the services you need, and submit
-                your wash request online. Our team will review and process your
-                order quickly.
+                Select your vehicle type, choose the services you need, submit
+                your wash request online, and track your order history anytime.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
@@ -182,35 +258,73 @@ export default function CustomerPortalPage() {
                   Start Order
                 </button>
 
-                <button
-                  onClick={() =>
-                    document.getElementById('services')?.scrollIntoView({
-                      behavior: 'smooth',
-                    })
-                  }
-                  className="bg-white/10 border border-white/20 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-xl"
+                <Link
+                  href="/customer/orders"
+                  className="bg-white text-blue-950 hover:bg-blue-50 font-bold px-6 py-3 rounded-xl"
                 >
-                  View Services
-                </button>
+                  Track My Orders
+                </Link>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-3xl overflow-hidden shadow-2xl bg-white/10 border border-white/10">
+            <div className="relative h-[430px] rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 bg-white/10">
+              {heroImages.map((image, index) => (
                 <img
-                  src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80"
-                  alt="Clean car"
-                  className="h-64 w-full object-cover"
+                  key={image}
+                  src={image}
+                  alt="Kaklinx Auto car wash"
+                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out ${
+                    index === currentImageIndex
+                      ? 'opacity-100 scale-105'
+                      : 'opacity-0 scale-100'
+                  }`}
+                />
+              ))}
+
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-950/30 to-transparent" />
+
+              <div className="absolute bottom-6 left-6 right-6">
+                <p className="text-sm text-blue-100">
+                  Premium wash experience
+                </p>
+                <h3 className="text-2xl font-bold text-white">
+                  Clean cars. Fresh look. Easy booking.
+                </h3>
+              </div>
+
+              <div className="absolute top-5 right-5 flex gap-2">
+                {heroImages.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`h-2.5 rounded-full transition-all duration-300 ${
+                      index === currentImageIndex
+                        ? 'w-8 bg-white'
+                        : 'w-2.5 bg-white/40'
+                    }`}
+                    aria-label={`Show image ${index + 1}`}
+                  />
+                ))}
+              </div>
+
+              <div className="absolute bottom-0 left-0 h-1 bg-white/20 w-full">
+                <div
+                  key={currentImageIndex}
+                  className="h-full bg-blue-400 animate-[progress_4.5s_linear_forwards]"
                 />
               </div>
 
-              <div className="rounded-3xl overflow-hidden shadow-2xl bg-white/10 border border-white/10 mt-10">
-                <img
-                  src="https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&w=900&q=80"
-                  alt="Luxury car wash"
-                  className="h-64 w-full object-cover"
-                />
-              </div>
+              <style jsx>{`
+                @keyframes progress {
+                  from {
+                    width: 0%;
+                  }
+                  to {
+                    width: 100%;
+                  }
+                }
+              `}</style>
             </div>
           </div>
         </div>
@@ -247,7 +361,7 @@ export default function CustomerPortalPage() {
           ].map((item) => (
             <div
               key={item.title}
-              className="bg-white rounded-3xl overflow-hidden shadow-xl border"
+              className="bg-white rounded-3xl overflow-hidden shadow-xl border hover:-translate-y-1 transition"
             >
               <img
                 src={item.img}
