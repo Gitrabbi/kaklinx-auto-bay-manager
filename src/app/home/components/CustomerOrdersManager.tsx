@@ -18,15 +18,18 @@ export default function CustomerOrdersManager() {
     .order('created_at', { ascending: false });
 
   if (error) {
+    console.error('CUSTOMER ORDERS ERROR:', error);
     setMessage(`Error loading orders: ${error.message}`);
     setOrders([]);
     setLoading(false);
     return;
   }
 
+  console.log('CUSTOMER ORDERS DATA:', data);
+
   setOrders(data || []);
   setLoading(false);
-  }
+}
 
   useEffect(() => {
     loadOrders();
