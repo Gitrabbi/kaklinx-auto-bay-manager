@@ -35,18 +35,23 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border p-8">
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-blue-700 flex items-center justify-center text-white font-bold text-2xl">
-            KA
-          </div>
+          <div className="text-center mb-8">
+  <div className="mx-auto w-40 h-24 rounded-2xl bg-white flex items-center justify-center overflow-hidden border shadow-sm">
+    <img
+      src="/kaklinx-logo.jpg"
+      alt="Kaklinx Auto"
+      className="w-full h-full object-contain"
+    />
+  </div>
 
-          <h1 className="text-2xl font-bold mt-4 text-slate-900">
-            KaklinxAuto Washing Bay
-          </h1>
+  <h1 className="text-2xl font-bold mt-5 text-slate-900">
+    KaklinxAuto Washing Bay
+  </h1>
 
-          <p className="text-sm text-slate-500 mt-1">
-            Sign in to manage washing bay operations
-          </p>
-        </div>
+  <p className="text-sm text-slate-500 mt-1">
+    Secure access to washing bay operations
+  </p>
+</div>
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
