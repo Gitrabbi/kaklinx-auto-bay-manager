@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function CustomerOrdersTrackingPage() {
+function CustomerOrdersTrackingContent() {
   const searchParams = useSearchParams();
 
   const [phone, setPhone] = useState('');
@@ -230,4 +230,20 @@ export default function CustomerOrdersTrackingPage() {
       </section>
     </main>
   );
-                          }
+}
+
+export default function CustomerOrdersTrackingPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-slate-100 flex items-center justify-center">
+          <div className="bg-white rounded-3xl shadow-xl border p-8">
+            Loading order tracking...
+          </div>
+        </main>
+      }
+    >
+      <CustomerOrdersTrackingContent />
+    </Suspense>
+  );
+}
