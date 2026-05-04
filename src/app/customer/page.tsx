@@ -20,21 +20,22 @@ export default function CustomerPortalPage() {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-function getServiceName(service: any) {
-  return (
-    service.serviceName ||
-    service.service_name ||
-    service.service ||
-    service.name ||
-    service.description ||
-    service.serviceType ||
-    service.service_type ||
-    service.title ||
-    service.label ||
-    service.type ||
-    'Unnamed Service'
-  );
-}
+
+  function getServiceName(service: any) {
+    return (
+      service.serviceName ||
+      service.service_name ||
+      service.service ||
+      service.name ||
+      service.description ||
+      service.serviceType ||
+      service.service_type ||
+      service.title ||
+      service.label ||
+      service.type ||
+      'Unnamed Service'
+    );
+  }
 
   function getServicePrice(service: any) {
     return Number(service.price || service.amount || service.cost || 0);
@@ -56,14 +57,10 @@ function getServiceName(service: any) {
 
   const totalAmount = useMemo(() => {
     return servicesForVehicle
-      .filter((service: any, index: number) => {
-        const serviceKey = getServiceKey(service, index);
-        return selectedServices.includes(serviceKey);
-      })
-      .reduce(
-        (sum: number, service: any) => sum + getServicePrice(service),
-        0
-      );
+      .filter((service: any, index: number) =>
+        selectedServices.includes(getServiceKey(service, index))
+      )
+      .reduce((sum: number, service: any) => sum + getServicePrice(service), 0);
   }, [servicesForVehicle, selectedServices]);
 
   function toggleService(serviceKey: string) {
@@ -72,6 +69,12 @@ function getServiceName(service: any) {
         ? prev.filter((s) => s !== serviceKey)
         : [...prev, serviceKey]
     );
+  }
+
+  function scrollToOrder() {
+    document.getElementById('order-form')?.scrollIntoView({
+      behavior: 'smooth',
+    });
   }
 
   async function submitOrder(e: React.FormEvent) {
@@ -88,10 +91,9 @@ function getServiceName(service: any) {
     }
 
     const selectedServiceDetails = servicesForVehicle
-      .filter((service: any, index: number) => {
-        const serviceKey = getServiceKey(service, index);
-        return selectedServices.includes(serviceKey);
-      })
+      .filter((service: any, index: number) =>
+        selectedServices.includes(getServiceKey(service, index))
+      )
       .map((service: any) => ({
         serviceName: getServiceName(service),
         price: getServicePrice(service),
@@ -135,170 +137,261 @@ function getServiceName(service: any) {
 
   return (
     <main className="min-h-screen bg-slate-100">
-      <section className="bg-slate-900 text-white px-6 py-10">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl font-bold">KaklinxAuto Washing Bay</h1>
-          <p className="text-slate-300 mt-2">
-            View services and request a car wash order online.
-          </p>
-        </div>
-      </section>
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 text-white">
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_#38bdf8,_transparent_35%),radial-gradient(circle_at_bottom_left,_#2563eb,_transparent_35%)]" />
 
-      <section className="max-w-5xl mx-auto px-6 py-8 grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow border p-6">
-          <h2 className="text-xl font-bold text-slate-900">Create Order</h2>
-
-          <form onSubmit={submitOrder} className="mt-6 space-y-5">
-            <div className="grid md:grid-cols-2 gap-4">
-              <input
-                required
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Customer name"
-                className="border rounded-lg px-3 py-2"
-              />
-
-              <input
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Phone number"
-                className="border rounded-lg px-3 py-2"
-              />
-
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email optional"
-                className="border rounded-lg px-3 py-2"
-              />
-
-              <input
-                value={licensePlate}
-                onChange={(e) => setLicensePlate(e.target.value)}
-                placeholder="License plate"
-                className="border rounded-lg px-3 py-2"
-              />
-
-              <input
-                value={vehicleMake}
-                onChange={(e) => setVehicleMake(e.target.value)}
-                placeholder="Vehicle make e.g. Toyota"
-                className="border rounded-lg px-3 py-2"
-              />
-
-              <input
-                value={vehicleModel}
-                onChange={(e) => setVehicleModel(e.target.value)}
-                placeholder="Vehicle model e.g. Corolla"
-                className="border rounded-lg px-3 py-2"
+        <div className="relative max-w-6xl mx-auto px-6 py-8">
+          <header className="flex items-center justify-between gap-4">
+            <div className="w-44 h-24 bg-white rounded-2xl overflow-hidden flex items-center justify-center shadow">
+              <img
+                src="/kaklinx-logo.jpg"
+                alt="Kaklinx Auto"
+                className="w-full h-full object-contain"
               />
             </div>
 
-            <select
-              required
-              value={vehicleType}
-              onChange={(e) => {
-                setVehicleType(e.target.value);
-                setSelectedServices([]);
-              }}
-              className="w-full border rounded-lg px-3 py-2"
-            >
-              <option value="">Select vehicle type</option>
-              {availableVehicleTypes.map((type: any) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-
-            {vehicleType && (
-              <div className="border rounded-xl p-4">
-                <h3 className="font-semibold text-slate-800 mb-3">
-                  Select Services
-                </h3>
-
-                <div className="space-y-2">
-                  {servicesForVehicle.map((service: any, index: number) => {
-                    console.log('SERVICE DATA:', service);
-                    const serviceName = getServiceName(service);
-                    const servicePrice = getServicePrice(service);
-                    const serviceKey = getServiceKey(service, index);
-
-                    return (
-                      <label
-                        key={serviceKey}
-                        className="flex items-center justify-between border rounded-lg px-3 py-2 cursor-pointer"
-                      >
-                        <span className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={selectedServices.includes(serviceKey)}
-                            onChange={() => toggleService(serviceKey)}
-                          />
-                          {serviceName}
-                        </span>
-
-                        <span className="font-semibold">
-                          GHS {servicePrice.toFixed(2)}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional notes optional"
-              className="w-full border rounded-lg px-3 py-2 min-h-24"
-            />
-
-            {errorMsg && (
-              <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
-                {errorMsg}
-              </div>
-            )}
-
-            {successMsg && (
-              <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg p-3 text-sm">
-                {successMsg}
-              </div>
-            )}
-
             <button
-              disabled={loading}
-              className="w-full bg-blue-700 hover:bg-blue-800 disabled:bg-blue-300 text-white font-semibold rounded-lg py-3"
+              onClick={scrollToOrder}
+              className="hidden sm:inline-flex bg-white text-blue-950 font-bold px-5 py-3 rounded-xl hover:bg-blue-50 transition"
             >
-              {loading ? 'Submitting...' : 'Submit Order Request'}
+              Book a Wash
             </button>
-          </form>
+          </header>
+
+          <div className="grid lg:grid-cols-2 gap-10 items-center py-12">
+            <div>
+              <p className="inline-flex rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm text-blue-100">
+                Premium Car Wash & Detailing Services
+              </p>
+
+              <h1 className="text-4xl lg:text-6xl font-extrabold mt-6 leading-tight">
+                Give your car the clean, fresh look it deserves.
+              </h1>
+
+              <p className="text-blue-100 text-lg mt-5 max-w-xl">
+                Select your vehicle type, choose the services you need, and submit
+                your wash request online. Our team will review and process your
+                order quickly.
+              </p>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <button
+                  onClick={scrollToOrder}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg"
+                >
+                  Start Order
+                </button>
+
+                <button
+                  onClick={() =>
+                    document.getElementById('services')?.scrollIntoView({
+                      behavior: 'smooth',
+                    })
+                  }
+                  className="bg-white/10 border border-white/20 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-xl"
+                >
+                  View Services
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-3xl overflow-hidden shadow-2xl bg-white/10 border border-white/10">
+                <img
+                  src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80"
+                  alt="Clean car"
+                  className="h-64 w-full object-cover"
+                />
+              </div>
+
+              <div className="rounded-3xl overflow-hidden shadow-2xl bg-white/10 border border-white/10 mt-10">
+                <img
+                  src="https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&w=900&q=80"
+                  alt="Luxury car wash"
+                  className="h-64 w-full object-cover"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="services" className="max-w-6xl mx-auto px-6 py-12">
+        <div className="text-center max-w-2xl mx-auto">
+          <h2 className="text-3xl font-extrabold text-slate-900">
+            Services for every vehicle type
+          </h2>
+          <p className="text-slate-500 mt-3">
+            From quick exterior cleaning to full wash and detailing, choose the
+            right service for your vehicle.
+          </p>
         </div>
 
-        <aside className="bg-white rounded-2xl shadow border p-6 h-fit">
-          <h2 className="text-lg font-bold text-slate-900">Order Summary</h2>
+        <div className="grid md:grid-cols-3 gap-6 mt-10">
+          {[
+            {
+              title: 'Exterior Wash',
+              desc: 'Body wash, rinsing, drying, and clean finishing.',
+              img: 'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=900&q=80',
+            },
+            {
+              title: 'Interior Cleaning',
+              desc: 'Seats, dashboard, mats, and interior surface refresh.',
+              img: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=900&q=80',
+            },
+            {
+              title: 'Full Detailing',
+              desc: 'A complete clean for customers who want the best finish.',
+              img: 'https://images.unsplash.com/photo-1603386329225-868f9b1ee6c9?auto=format&fit=crop&w=900&q=80',
+            },
+          ].map((item) => (
+            <div
+              key={item.title}
+              className="bg-white rounded-3xl overflow-hidden shadow-xl border"
+            >
+              <img
+                src={item.img}
+                alt={item.title}
+                className="h-48 w-full object-cover"
+              />
 
-          <div className="mt-4 space-y-2 text-sm">
-            <p>
-              <span className="text-slate-500">Vehicle Type:</span>{' '}
-              <span className="font-semibold">
-                {vehicleType || 'Not selected'}
-              </span>
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-slate-900">
+                  {item.title}
+                </h3>
+                <p className="text-slate-500 mt-2 text-sm">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="order-form" className="max-w-6xl mx-auto px-6 pb-14">
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white rounded-3xl shadow-xl border p-6">
+            <h2 className="text-2xl font-extrabold text-slate-900">
+              Create Your Order
+            </h2>
+            <p className="text-slate-500 text-sm mt-1">
+              Fill in your vehicle details and choose your preferred services.
             </p>
 
-            <p>
-              <span className="text-slate-500">Services:</span>{' '}
-              <span className="font-semibold">{selectedServices.length}</span>
-            </p>
+            <form onSubmit={submitOrder} className="mt-6 space-y-5">
+              <div className="grid md:grid-cols-2 gap-4">
+                <input required value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Customer name" className="border rounded-xl px-4 py-3" />
+                <input required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" className="border rounded-xl px-4 py-3" />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email optional" className="border rounded-xl px-4 py-3" />
+                <input value={licensePlate} onChange={(e) => setLicensePlate(e.target.value)} placeholder="License plate" className="border rounded-xl px-4 py-3" />
+                <input value={vehicleMake} onChange={(e) => setVehicleMake(e.target.value)} placeholder="Vehicle make e.g. Toyota" className="border rounded-xl px-4 py-3" />
+                <input value={vehicleModel} onChange={(e) => setVehicleModel(e.target.value)} placeholder="Vehicle model e.g. Corolla" className="border rounded-xl px-4 py-3" />
+              </div>
 
-            <p className="text-2xl font-bold text-blue-700 pt-3">
-              GHS {totalAmount.toFixed(2)}
-            </p>
+              <select
+                required
+                value={vehicleType}
+                onChange={(e) => {
+                  setVehicleType(e.target.value);
+                  setSelectedServices([]);
+                }}
+                className="w-full border rounded-xl px-4 py-3"
+              >
+                <option value="">Select vehicle type</option>
+                {availableVehicleTypes.map((type: any) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+
+              {vehicleType && (
+                <div className="border rounded-2xl p-4 bg-slate-50">
+                  <h3 className="font-bold text-slate-800 mb-3">
+                    Select Services
+                  </h3>
+
+                  <div className="space-y-2">
+                    {servicesForVehicle.map((service: any, index: number) => {
+                      const serviceName = getServiceName(service);
+                      const servicePrice = getServicePrice(service);
+                      const serviceKey = getServiceKey(service, index);
+
+                      return (
+                        <label
+                          key={serviceKey}
+                          className="flex items-center justify-between bg-white border rounded-xl px-4 py-3 cursor-pointer hover:border-blue-400"
+                        >
+                          <span className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedServices.includes(serviceKey)}
+                              onChange={() => toggleService(serviceKey)}
+                            />
+                            {serviceName}
+                          </span>
+
+                          <span className="font-bold text-blue-700">
+                            GHS {servicePrice.toFixed(2)}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Additional notes optional"
+                className="w-full border rounded-xl px-4 py-3 min-h-24"
+              />
+
+              {errorMsg && (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
+                  {errorMsg}
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl p-3 text-sm">
+                  {successMsg}
+                </div>
+              )}
+
+              <button
+                disabled={loading}
+                className="w-full bg-blue-700 hover:bg-blue-800 disabled:bg-blue-300 text-white font-bold rounded-xl py-4"
+              >
+                {loading ? 'Submitting...' : 'Submit Order Request'}
+              </button>
+            </form>
           </div>
-        </aside>
+
+          <aside className="bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 text-white rounded-3xl shadow-xl border border-white/10 p-6 h-fit sticky top-6">
+            <h2 className="text-xl font-bold">Order Summary</h2>
+
+            <div className="mt-5 space-y-4 text-sm">
+              <p>
+                <span className="text-blue-200">Vehicle Type:</span>
+                <br />
+                <span className="font-bold">{vehicleType || 'Not selected'}</span>
+              </p>
+
+              <p>
+                <span className="text-blue-200">Selected Services:</span>
+                <br />
+                <span className="font-bold">{selectedServices.length}</span>
+              </p>
+
+              <div className="border-t border-white/10 pt-4">
+                <p className="text-blue-200 text-xs">Estimated Total</p>
+                <p className="text-3xl font-extrabold">
+                  GHS {totalAmount.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </aside>
+        </div>
       </section>
     </main>
   );
