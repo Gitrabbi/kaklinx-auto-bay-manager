@@ -1,4 +1,5 @@
 'use client';
+import CustomerOrdersManager from './components/CustomerOrdersManager';
 import MyWorkerJobs from './components/MyWorkerJobs';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import AuthGuard from '@/components/AuthGuard';
