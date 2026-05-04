@@ -4,21 +4,40 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
+function normalizeGhanaPhone(phone: string) {
+  const cleaned = phone.replace(/\s+/g, '').replace(/-/g, '');
+
+  if (cleaned.startsWith('+')) return cleaned;
+
+  if (cleaned.startsWith('0')) {
+    return `+233${cleaned.slice(1)}`;
+  }
+
+  if (cleaned.startsWith('233')) {
+    return `+${cleaned}`;
+  }
+
+  return cleaned;
+}
+
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+
     setLoading(true);
     setErrorMsg('');
 
+    const normalizedPhone = normalizeGhanaPhone(phone);
+
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      phone: normalizedPhone,
       password,
     });
 
@@ -48,23 +67,26 @@ export default function LoginPage() {
           </h1>
 
           <p className="text-sm text-slate-500 mt-1">
-            Secure access to washing bay operations
+            Sign in with your phone number and password
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Email
+              Telephone Number
             </label>
             <input
-              type="email"
+              type="tel"
               required
               className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter email address"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="0241234567"
             />
+            <p className="text-xs text-slate-400 mt-1">
+              You may enter 024..., 233..., or +233...
+            </p>
           </div>
 
           <div>
