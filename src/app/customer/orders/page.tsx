@@ -10,9 +10,16 @@ function CustomerOrdersTrackingContent() {
 
   const [phone, setPhone] = useState('');
   const [orders, setOrders] = useState<any[]>([]);
+  const [workOrders, setWorkOrders] = useState<Record<string, any>>({});
+  const [now, setNow] = useState(Date.now());
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const phoneFromUrl = searchParams.get('phone');
@@ -23,10 +30,116 @@ function CustomerOrdersTrackingContent() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    if (!phone) return;
+
+    const channel = supabase
+      .channel('customer-live-tracking')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'customer_orders',
+          filter: `phone=eq.${phone}`,
+        },
+        () => {
+          loadOrders(phone);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'work_orders',
+        },
+        (payload) => {
+          const updated = payload.new as any;
+
+          setWorkOrders((prev) => ({
+            ...prev,
+            [String(updated.id)]: updated,
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [phone]);
+
   function getStatusStyle(status: string) {
-    if (status === 'converted') return 'bg-green-50 text-green-700 border-green-200';
-    if (status === 'reviewed') return 'bg-blue-50 text-blue-700 border-blue-200';
+    if (status === 'Completed' || status === 'completed') {
+      return 'bg-green-50 text-green-700 border-green-200';
+    }
+
+    if (status === 'In Progress' || status === 'in_progress') {
+      return 'bg-blue-50 text-blue-700 border-blue-200';
+    }
+
+    if (status === 'converted') {
+      return 'bg-blue-50 text-blue-700 border-blue-200';
+    }
+
     return 'bg-amber-50 text-amber-700 border-amber-200';
+  }
+
+  function getWorkOrderStatus(order: any) {
+    const workOrderId = order.converted_work_order_id;
+    const workOrder = workOrderId ? workOrders[String(workOrderId)] : null;
+
+    return workOrder?.status || order.status;
+  }
+
+  function getStartedAt(workOrder: any) {
+    return workOrder?.started_at || workOrder?.startedAt || null;
+  }
+
+  function getCompletedAt(workOrder: any) {
+    return workOrder?.completed_at || workOrder?.completedAt || null;
+  }
+
+  function getTargetMinutes(workOrder: any) {
+    return Number(workOrder?.target_minutes || workOrder?.targetMinutes || 30);
+  }
+
+  function getCountdown(workOrder: any) {
+    if (!workOrder) return null;
+
+    const startedAt = getStartedAt(workOrder);
+    const completedAt = getCompletedAt(workOrder);
+    const status = workOrder.status;
+
+    if (!startedAt) return null;
+
+    if (completedAt || status === 'Completed' || status === 'completed') {
+      return {
+        label: 'Completed',
+        time: '00:00',
+        percent: 100,
+        overdue: false,
+      };
+    }
+
+    const startMs = new Date(startedAt).getTime();
+    const targetMs = getTargetMinutes(workOrder) * 60 * 1000;
+    const elapsedMs = now - startMs;
+    const remainingMs = targetMs - elapsedMs;
+
+    const absMs = Math.abs(remainingMs);
+    const minutes = Math.floor(absMs / 60000);
+    const seconds = Math.floor((absMs % 60000) / 1000);
+
+    const percent = Math.min(100, Math.max(0, (elapsedMs / targetMs) * 100));
+
+    return {
+      label: remainingMs >= 0 ? 'Estimated time remaining' : 'Extra time used',
+      time: `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
+      percent,
+      overdue: remainingMs < 0,
+    };
   }
 
   async function loadOrders(phoneNumber?: string) {
@@ -54,7 +167,28 @@ function CustomerOrdersTrackingContent() {
       return;
     }
 
-    setOrders(data || []);
+    const foundOrders = data || [];
+    setOrders(foundOrders);
+
+    const workOrderIds = foundOrders
+      .map((order: any) => order.converted_work_order_id)
+      .filter(Boolean);
+
+    if (workOrderIds.length > 0) {
+      const { data: workOrderData } = await supabase
+        .from('work_orders')
+        .select('*')
+        .in('id', workOrderIds);
+
+      const mapped: Record<string, any> = {};
+
+      (workOrderData || []).forEach((workOrder: any) => {
+        mapped[String(workOrder.id)] = workOrder;
+      });
+
+      setWorkOrders(mapped);
+    }
+
     setLoading(false);
   }
 
@@ -72,9 +206,9 @@ function CustomerOrdersTrackingContent() {
             </div>
 
             <div>
-              <h1 className="text-3xl font-extrabold">Track Your Orders</h1>
+              <h1 className="text-3xl font-extrabold">Live Order Tracking</h1>
               <p className="text-blue-100 mt-1">
-                View your previous and current washing bay requests.
+                Track your request, job status, and live countdown.
               </p>
             </div>
           </div>
@@ -136,94 +270,120 @@ function CustomerOrdersTrackingContent() {
             </div>
           ) : (
             <div className="space-y-5">
-              {orders.map((order) => (
-                <div
-                  key={order.id}
-                  className="bg-white rounded-3xl shadow-xl border overflow-hidden"
-                >
-                  <div className="bg-gradient-to-r from-slate-950 to-blue-950 px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div>
-                      <h3 className="text-white font-bold text-lg">
-                        {order.vehicle_make || 'Vehicle'} {order.vehicle_model || ''}
-                      </h3>
+              {orders.map((order) => {
+                const workOrderId = order.converted_work_order_id;
+                const workOrder = workOrderId
+                  ? workOrders[String(workOrderId)]
+                  : null;
 
-                      <p className="text-blue-100 text-sm">
-                        Plate: {order.license_plate || 'N/A'} •{' '}
-                        {new Date(order.created_at).toLocaleString()}
-                      </p>
+                const liveStatus = getWorkOrderStatus(order);
+                const countdown = getCountdown(workOrder);
+
+                return (
+                  <div
+                    key={order.id}
+                    className="bg-white rounded-3xl shadow-xl border overflow-hidden"
+                  >
+                    <div className="bg-gradient-to-r from-slate-950 to-blue-950 px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <h3 className="text-white font-bold text-lg">
+                          {order.vehicle_make || 'Vehicle'}{' '}
+                          {order.vehicle_model || ''}
+                        </h3>
+
+                        <p className="text-blue-100 text-sm">
+                          Plate: {order.license_plate || 'N/A'} •{' '}
+                          {new Date(order.created_at).toLocaleString()}
+                        </p>
+                      </div>
+
+                      <span
+                        className={`text-xs font-bold border px-3 py-1 rounded-full ${getStatusStyle(
+                          liveStatus
+                        )}`}
+                      >
+                        {liveStatus}
+                      </span>
                     </div>
 
-                    <span
-                      className={`text-xs font-bold border px-3 py-1 rounded-full ${getStatusStyle(order.status)}`}
-                    >
-                      {order.status}
-                    </span>
-                  </div>
+                    <div className="p-6">
+                      <div className="grid md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-slate-500">Vehicle Type</p>
+                          <p className="font-bold text-slate-900">
+                            {order.vehicle_type}
+                          </p>
+                        </div>
 
-                  <div className="p-6">
-                    <div className="grid md:grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <p className="text-slate-500">Vehicle Type</p>
-                        <p className="font-bold text-slate-900">
-                          {order.vehicle_type}
-                        </p>
+                        <div>
+                          <p className="text-slate-500">Total Amount</p>
+                          <p className="font-bold text-blue-700">
+                            GHS {Number(order.total_amount || 0).toFixed(2)}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-slate-500">Work Order</p>
+                          <p className="font-mono text-xs text-slate-700">
+                            {workOrderId || 'Not assigned yet'}
+                          </p>
+                        </div>
                       </div>
 
-                      <div>
-                        <p className="text-slate-500">Total Amount</p>
-                        <p className="font-bold text-blue-700">
-                          GHS {Number(order.total_amount || 0).toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-slate-500">Order ID</p>
-                        <p className="font-mono text-xs text-slate-700">
-                          {order.id}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-5">
-                      <p className="font-bold text-slate-900 mb-2">Services</p>
-
-                      <div className="space-y-2">
-                        {(order.selected_services || []).map(
-                          (service: any, index: number) => (
-                            <div
-                              key={index}
-                              className="flex justify-between border rounded-xl px-4 py-3 text-sm"
-                            >
-                              <span>
-                                {service.serviceName ||
-                                  service.service_type ||
-                                  service.serviceType ||
-                                  service.name ||
-                                  'Service'}
-                              </span>
-
-                              <span className="font-bold text-blue-700">
-                                GHS {Number(service.price || 0).toFixed(2)}
-                              </span>
+                      {workOrder && countdown && (
+                        <div className="mt-6 bg-slate-50 border rounded-2xl p-5">
+                          <div className="flex justify-between gap-4">
+                            <div>
+                              <p className="text-sm text-slate-500">
+                                {countdown.label}
+                              </p>
+                              <p
+                                className={`text-4xl font-extrabold mt-1 ${
+                                  countdown.overdue
+                                    ? 'text-red-700'
+                                    : 'text-blue-700'
+                                }`}
+                              >
+                                {countdown.time}
+                              </p>
                             </div>
-                          )
-                        )}
-                      </div>
-                    </div>
 
-                    <div className="mt-5 bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
-                      {order.status === 'pending' &&
-                        'Your order has been received and is awaiting review.'}
+                            <div className="text-right">
+                              <p className="text-sm text-slate-500">
+                                Target Time
+                              </p>
+                              <p className="font-bold text-slate-900">
+                                {getTargetMinutes(workOrder)} mins
+                              </p>
+                            </div>
+                          </div>
 
-                      {order.status === 'reviewed' &&
-                        'Your order has been reviewed by our team.'}
+                          <div className="mt-4 h-3 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                countdown.overdue ? 'bg-red-600' : 'bg-blue-600'
+                              }`}
+                              style={{ width: `${countdown.percent}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
 
-                      {order.status === 'converted' &&
-                        'Your order has been converted into a work order and is being processed.'}
+                      {!workOrder && order.status === 'converted' && (
+                        <div className="mt-6 bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
+                          Your order has been converted. Live job details will appear once the job starts.
+                        </div>
+                      )}
+
+                      {order.status !== 'converted' && (
+                        <div className="mt-6 bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
+                          Your order has been received and is awaiting work order processing.
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -238,7 +398,7 @@ export default function CustomerOrdersTrackingPage() {
       fallback={
         <main className="min-h-screen bg-slate-100 flex items-center justify-center">
           <div className="bg-white rounded-3xl shadow-xl border p-8">
-            Loading order tracking...
+            Loading live order tracking...
           </div>
         </main>
       }
