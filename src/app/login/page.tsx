@@ -23,7 +23,7 @@ function normalizeGhanaPhone(phone: string) {
 export default function LoginPage() {
   const router = useRouter();
 
-  const [phone, setPhone] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -34,12 +34,18 @@ export default function LoginPage() {
     setLoading(true);
     setErrorMsg('');
 
-    const normalizedPhone = normalizeGhanaPhone(phone);
+    const value = loginId.trim();
+    const isEmail = value.includes('@');
 
-    const { error } = await supabase.auth.signInWithPassword({
-      phone: normalizedPhone,
-      password,
-    });
+    const { error } = isEmail
+      ? await supabase.auth.signInWithPassword({
+          email: value,
+          password,
+        })
+      : await supabase.auth.signInWithPassword({
+          phone: normalizeGhanaPhone(value),
+          password,
+        });
 
     if (error) {
       setErrorMsg(error.message);
@@ -67,25 +73,25 @@ export default function LoginPage() {
           </h1>
 
           <p className="text-sm text-slate-500 mt-1">
-            Sign in with your phone number and password
+            Sign in with email or phone number
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Telephone Number
+              Email or Telephone Number
             </label>
             <input
-              type="tel"
+              type="text"
               required
               className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="0241234567"
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
+              placeholder="admin@email.com or 0241234567"
             />
             <p className="text-xs text-slate-400 mt-1">
-              You may enter 024..., 233..., or +233...
+              Phone numbers may be entered as 024..., 233..., or +233...
             </p>
           </div>
 
