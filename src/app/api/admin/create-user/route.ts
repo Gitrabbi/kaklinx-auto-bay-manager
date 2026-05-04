@@ -6,13 +6,30 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+function normalizeGhanaPhone(phone: string) {
+  const cleaned = phone.replace(/\s+/g, '').replace(/-/g, '');
+
+  if (cleaned.startsWith('+')) return cleaned;
+
+  if (cleaned.startsWith('0')) {
+    return `+233${cleaned.slice(1)}`;
+  }
+
+  if (cleaned.startsWith('233')) {
+    return `+${cleaned}`;
+  }
+
+  return cleaned;
+}
+
 export async function POST(req: Request) {
   try {
-    const { fullName, email, password, role, workerId } = await req.json();
+    const { fullName, email, phone, password, role, workerId } =
+      await req.json();
 
-    if (!fullName || !email || !password || !role) {
+    if (!fullName || !phone || !password || !role || !workerId) {
       return NextResponse.json(
-        { error: 'All fields are required.' },
+        { error: 'Staff, telephone number, password, and role are required.' },
         { status: 400 }
       );
     }
@@ -24,18 +41,15 @@ export async function POST(req: Request) {
       );
     }
 
-    if (role === 'worker' && !workerId) {
-      return NextResponse.json(
-        { error: 'Please select the worker this login belongs to.' },
-        { status: 400 }
-      );
-    }
+    const normalizedPhone = normalizeGhanaPhone(phone);
 
     const { data: createdUser, error: createError } =
       await supabaseAdmin.auth.admin.createUser({
-        email,
+        phone: normalizedPhone,
         password,
-        email_confirm: true,
+        phone_confirm: true,
+        email: email || undefined,
+        email_confirm: email ? true : undefined,
       });
 
     if (createError) {
@@ -53,7 +67,8 @@ export async function POST(req: Request) {
         id: userId,
         full_name: fullName,
         role,
-        worker_id: role === 'worker' ? workerId : null,
+        worker_id: workerId,
+        phone: normalizedPhone,
       });
 
     if (profileError) {
