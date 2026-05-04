@@ -37,6 +37,12 @@ const navItems: NavItem[] = [
     roles: ['admin', 'cashier', 'worker'],
   },
   {
+    label: 'Customer Orders',
+    icon: <ClipboardDocumentListIcon className="w-[18px] h-[18px] shrink-0" />,
+    href: '#customer-orders',
+    roles: ['admin', 'cashier'],
+  },
+  {
     label: 'Workers',
     icon: <UsersIcon className="w-[18px] h-[18px] shrink-0" />,
     href: '#workers',
@@ -90,12 +96,6 @@ const navItems: NavItem[] = [
     href: '#expenditures',
     roles: ['admin', 'cashier'],
   },
-  {
-  label: 'Customer Orders',
-  icon: <ClipboardDocumentListIcon className="w-[18px] h-[18px] shrink-0" />,
-  href: '#customer-orders',
-  roles: ['admin', 'cashier'],
-},
 ];
 
 interface SidebarProps {
@@ -116,74 +116,59 @@ export default function Sidebar({
   const { profile, loading } = useUserProfile();
   const role = profile?.role;
 
-  const visibleNavItems = loading || !role
-    ? []
-    : navItems.filter((item) => item.roles.includes(role));
+  const visibleNavItems =
+    loading || !role ? [] : navItems.filter((item) => item.roles.includes(role));
 
   return (
     <>
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
           onClick={onMobileClose}
         />
       )}
 
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 flex flex-col sidebar-transition lg:translate-x-0 lg:static lg:z-auto ${
+        className={`fixed top-0 left-0 z-50 h-full w-72 flex flex-col sidebar-transition lg:translate-x-0 lg:static lg:z-auto ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{
-          backgroundColor: 'hsl(215 28% 14%)',
+          background:
+            'linear-gradient(180deg, #020617 0%, #0f172a 45%, #082f49 100%)',
           color: 'hsl(210 15% 85%)',
         }}
       >
         <div
-          className="flex items-center gap-3 px-6 py-5 border-b"
-          style={{ borderColor: 'hsl(215 20% 22%)' }}
+          className="flex items-center gap-3 px-5 py-5 border-b"
+          style={{ borderColor: 'rgba(148, 163, 184, 0.18)' }}
         >
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ backgroundColor: 'hsl(205 78% 52%)' }}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z" />
-              <path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97" />
-            </svg>
+          <div className="w-16 h-12 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm shrink-0">
+            <img
+              src="/kaklinx-logo.jpg"
+              alt="Kaklinx Auto"
+              className="w-full h-full object-contain"
+            />
           </div>
 
-          <div>
-            <h1 className="font-inter font-bold text-base text-white">
-              KaklinxAuto
+          <div className="min-w-0">
+            <h1 className="font-inter font-bold text-base text-white truncate">
+              Kaklinx Auto
             </h1>
-            <p
-              className="text-xs"
-              style={{ color: 'hsla(210, 15%, 85%, 0.6)' }}
-            >
-              Washing Bay
+            <p className="text-xs text-blue-200 truncate">
+              Washing Bay Manager
             </p>
           </div>
 
           <button
-            className="ml-auto lg:hidden hover:text-white transition-colors"
-            style={{ color: 'hsla(210, 15%, 85%, 0.6)' }}
+            className="ml-auto lg:hidden hover:text-white transition-colors text-slate-400"
             onClick={onMobileClose}
+            aria-label="Close menu"
           >
             <XMarkIcon className="w-5 h-5" />
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {visibleNavItems.map((item) => {
             const isActive = activeSection === item.href;
 
@@ -195,8 +180,10 @@ export default function Sidebar({
                   e.preventDefault();
                   onNavClick(item.href);
                 }}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive ? 'nav-link-active' : 'nav-link'
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 {item.icon}
@@ -209,19 +196,11 @@ export default function Sidebar({
         {role !== 'worker' && (
           <div
             className="px-4 py-4 border-t"
-            style={{ borderColor: 'hsl(215 20% 22%)' }}
+            style={{ borderColor: 'rgba(148, 163, 184, 0.18)' }}
           >
-            <div
-              className="rounded-lg p-3"
-              style={{ backgroundColor: 'hsl(215 25% 20%)' }}
-            >
-              <p
-                className="text-xs"
-                style={{ color: 'hsla(210, 15%, 85%, 0.6)' }}
-              >
-                Today&apos;s Revenue
-              </p>
-              <p className="text-lg font-bold text-white mt-0.5">
+            <div className="rounded-2xl p-4 bg-white/10 border border-white/10">
+              <p className="text-xs text-blue-100">Today&apos;s Revenue</p>
+              <p className="text-xl font-bold text-white mt-1">
                 {todayRevenue}
               </p>
             </div>
