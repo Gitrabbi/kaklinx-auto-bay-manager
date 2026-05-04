@@ -32,26 +32,25 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border p-8">
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border p-8">
         <div className="text-center mb-8">
-          <div className="text-center mb-8">
-  <div className="mx-auto w-40 h-24 rounded-2xl bg-white flex items-center justify-center overflow-hidden border shadow-sm">
-    <img
-      src="/kaklinx-logo.jpg"
-      alt="Kaklinx Auto"
-      className="w-full h-full object-contain"
-    />
-  </div>
+          <div className="mx-auto w-44 h-24 rounded-2xl bg-white flex items-center justify-center overflow-hidden border shadow-sm">
+            <img
+              src="/kaklinx-logo.jpg"
+              alt="Kaklinx Auto"
+              className="w-full h-full object-contain"
+            />
+          </div>
 
-  <h1 className="text-2xl font-bold mt-5 text-slate-900">
-    KaklinxAuto Washing Bay
-  </h1>
+          <h1 className="text-2xl font-bold mt-5 text-slate-900">
+            KaklinxAuto Washing Bay
+          </h1>
 
-  <p className="text-sm text-slate-500 mt-1">
-    Secure access to washing bay operations
-  </p>
-</div>
+          <p className="text-sm text-slate-500 mt-1">
+            Secure access to washing bay operations
+          </p>
+        </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
