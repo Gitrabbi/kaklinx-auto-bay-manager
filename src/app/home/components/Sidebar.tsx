@@ -90,6 +90,12 @@ const navItems: NavItem[] = [
     href: '#expenditures',
     roles: ['admin', 'cashier'],
   },
+  {
+  label: 'Customer Orders',
+  icon: <ClipboardDocumentListIcon className="w-[18px] h-[18px] shrink-0" />,
+  href: '#customer-orders',
+  roles: ['admin', 'cashier'],
+},
 ];
 
 interface SidebarProps {
