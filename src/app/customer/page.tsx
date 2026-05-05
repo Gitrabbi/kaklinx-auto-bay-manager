@@ -345,7 +345,7 @@ export default function CustomerPortalPage() {
             {
               title: 'Exterior Wash',
               desc: 'Body wash, rinsing, drying, and clean finishing.',
-              img: 'https://images.unsplash.com/photo-1597007066704-67bf2068d5b2?auto=format&fit=crop&w=700&q=60',
+              img: 'https://pixabay.com/photos/car-car-wash-jdm-vehicle-auto-7291166/?auto=format&fit=crop&w=700&q=60',
             },
             {
               title: 'Interior Cleaning',
