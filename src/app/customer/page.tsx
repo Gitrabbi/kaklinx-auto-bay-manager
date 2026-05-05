@@ -346,17 +346,17 @@ export default function CustomerPortalPage() {
             {
               title: 'Exterior Wash',
               desc: 'Body wash, rinsing, drying, and clean finishing.',
-              img: 'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&w=900&q=80',
+              img: 'https://pixabay.com/photos/car-car-wash-jdm-vehicle-auto-7291166/?auto=format&fit=crop&w=900&q=80',
             },
             {
               title: 'Interior Cleaning',
               desc: 'Seats, dashboard, mats, and interior surface refresh.',
-              img: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=900&q=80',
+              img: 'https://pixabay.com/photos/wash-car-protect-garage-cleaning-5144827/?auto=format&fit=crop&w=900&q=80',
             },
             {
               title: 'Full Detailing',
               desc: 'A complete clean for customers who want the best finish.',
-              img: 'https://images.unsplash.com/photo-1603386329225-868f9b1ee6c9?auto=format&fit=crop&w=900&q=80',
+              img: 'https://pixabay.com/photos/wash-car-protect-garage-cleaning-5144822/?auto=format&fit=crop&w=900&q=80',
             },
           ].map((item) => (
             <div
