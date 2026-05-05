@@ -351,7 +351,7 @@ export default function CustomerPortalPage() {
             {
               title: 'Interior Cleaning',
               desc: 'Seats, dashboard, mats, and interior surface refresh.',
-              img: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=900&q=80',
+              img: 'https://pixabay.com/photos/wash-car-protect-garage-cleaning-5144827/',
             },
             {
               title: 'Full Detailing',
