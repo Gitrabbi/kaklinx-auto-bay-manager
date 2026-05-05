@@ -350,7 +350,7 @@ export default function CustomerPortalPage() {
             {
               title: 'Interior Cleaning',
               desc: 'Seats, dashboard, mats, and interior surface refresh.',
-              img: '/interior - cleaning.jpg',
+              img: '/interior-cleaning.jpg',
             },
             {
               title: 'Full Detailing',
