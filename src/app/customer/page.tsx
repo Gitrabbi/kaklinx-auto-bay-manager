@@ -345,12 +345,12 @@ export default function CustomerPortalPage() {
             {
               title: 'Exterior Wash',
               desc: 'Body wash, rinsing, drying, and clean finishing.',
-              img: '/exterior-wash.jpg',
+              img: '/exterior - wash.jpg',
             },
             {
               title: 'Interior Cleaning',
               desc: 'Seats, dashboard, mats, and interior surface refresh.',
-              img: '/interior-cleaning.jpg',
+              img: '/interior - cleaning.jpg',
             },
             {
               title: 'Full Detailing',
