@@ -24,11 +24,10 @@ export default function CustomerPortalPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const heroImages = [
-    'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1400&q=80',
-    'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&w=1400&q=80',
-    'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=1400&q=80',
-    'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=1400&q=80',
-    'https://images.unsplash.com/photo-1603386329225-868f9b1ee6c9?auto=format&fit=crop&w=1400&q=80',
+    'https://images.pexels.com/photos/6873088/pexels-photo-6873088.jpeg?auto=compress&cs=tinysrgb&w=900',
+    'https://images.pexels.com/photos/6873081/pexels-photo-6873081.jpeg?auto=compress&cs=tinysrgb&w=900',
+    'https://images.pexels.com/photos/6873083/pexels-photo-6873083.jpeg?auto=compress&cs=tinysrgb&w=900',
+    'https://images.pexels.com/photos/6873087/pexels-photo-6873087.jpeg?auto=compress&cs=tinysrgb&w=900',
   ];
 
   useEffect(() => {
@@ -37,7 +36,7 @@ export default function CustomerPortalPage() {
     }, 4500);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [heroImages.length]);
 
   useEffect(() => {
     const savedData = localStorage.getItem('kaklinx_customer_order');
@@ -346,17 +345,17 @@ export default function CustomerPortalPage() {
             {
               title: 'Exterior Wash',
               desc: 'Body wash, rinsing, drying, and clean finishing.',
-              img: 'https://pixabay.com/photos/car-car-wash-jdm-vehicle-auto-7291166/?auto=format&fit=crop&w=900&q=80',
+              img: 'https://images.pexels.com/photos/6873088/pexels-photo-6873088.jpeg?auto=compress&cs=tinysrgb&w=700',
             },
             {
               title: 'Interior Cleaning',
               desc: 'Seats, dashboard, mats, and interior surface refresh.',
-              img: 'https://pixabay.com/photos/wash-car-protect-garage-cleaning-5144827/?auto=format&fit=crop&w=900&q=80',
+              img: 'https://images.pexels.com/photos/6873081/pexels-photo-6873081.jpeg?auto=compress&cs=tinysrgb&w=700',
             },
             {
               title: 'Full Detailing',
               desc: 'A complete clean for customers who want the best finish.',
-              img: 'https://pixabay.com/photos/wash-car-protect-garage-cleaning-5144822/?auto=format&fit=crop&w=900&q=80',
+              img: 'https://images.pexels.com/photos/6873083/pexels-photo-6873083.jpeg?auto=compress&cs=tinysrgb&w=700',
             },
           ].map((item) => (
             <div
@@ -367,6 +366,7 @@ export default function CustomerPortalPage() {
                 src={item.img}
                 alt={item.title}
                 className="h-48 w-full object-cover"
+                loading="lazy"
               />
 
               <div className="p-6">
@@ -392,12 +392,50 @@ export default function CustomerPortalPage() {
 
             <form onSubmit={submitOrder} className="mt-6 space-y-5">
               <div className="grid md:grid-cols-2 gap-4">
-                <input required value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Customer name" className="border rounded-xl px-4 py-3" />
-                <input required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" className="border rounded-xl px-4 py-3" />
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email optional" className="border rounded-xl px-4 py-3" />
-                <input value={licensePlate} onChange={(e) => setLicensePlate(e.target.value)} placeholder="License plate" className="border rounded-xl px-4 py-3" />
-                <input value={vehicleMake} onChange={(e) => setVehicleMake(e.target.value)} placeholder="Vehicle make e.g. Toyota" className="border rounded-xl px-4 py-3" />
-                <input value={vehicleModel} onChange={(e) => setVehicleModel(e.target.value)} placeholder="Vehicle model e.g. Corolla" className="border rounded-xl px-4 py-3" />
+                <input
+                  required
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Customer name"
+                  className="border rounded-xl px-4 py-3"
+                />
+
+                <input
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Phone number"
+                  className="border rounded-xl px-4 py-3"
+                />
+
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email optional"
+                  className="border rounded-xl px-4 py-3"
+                />
+
+                <input
+                  value={licensePlate}
+                  onChange={(e) => setLicensePlate(e.target.value)}
+                  placeholder="License plate"
+                  className="border rounded-xl px-4 py-3"
+                />
+
+                <input
+                  value={vehicleMake}
+                  onChange={(e) => setVehicleMake(e.target.value)}
+                  placeholder="Vehicle make e.g. Toyota"
+                  className="border rounded-xl px-4 py-3"
+                />
+
+                <input
+                  value={vehicleModel}
+                  onChange={(e) => setVehicleModel(e.target.value)}
+                  placeholder="Vehicle model e.g. Corolla"
+                  className="border rounded-xl px-4 py-3"
+                />
               </div>
 
               <select
@@ -488,7 +526,9 @@ export default function CustomerPortalPage() {
               <p>
                 <span className="text-blue-200">Vehicle Type:</span>
                 <br />
-                <span className="font-bold">{vehicleType || 'Not selected'}</span>
+                <span className="font-bold">
+                  {vehicleType || 'Not selected'}
+                </span>
               </p>
 
               <p>
