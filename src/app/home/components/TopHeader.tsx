@@ -36,15 +36,15 @@ export default function TopHeader({ onMenuClick }: TopHeaderProps) {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* User Info */}
-      <div className="hidden sm:block text-right mr-4">
-        <p className="text-sm font-semibold text-slate-900">
+      {/* User Welcome (now visible on ALL screens) */}
+      <div className="text-right mr-3 max-w-[150px] sm:max-w-none">
+        <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
           {loading
             ? 'Loading...'
             : `Welcome, ${profile?.full_name?.split(' ')[0] || 'User'}`}
         </p>
 
-        <p className="text-xs text-slate-500 capitalize">
+        <p className="text-[10px] sm:text-xs text-slate-500 capitalize truncate">
           {loading ? '' : profile?.role || 'staff'}
         </p>
       </div>
@@ -52,7 +52,7 @@ export default function TopHeader({ onMenuClick }: TopHeaderProps) {
       {/* Logout */}
       <button
         onClick={handleLogout}
-        className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 transition"
+        className="px-3 sm:px-4 py-2 rounded-lg bg-slate-900 text-white text-xs sm:text-sm font-semibold hover:bg-slate-700 transition"
       >
         Logout
       </button>
