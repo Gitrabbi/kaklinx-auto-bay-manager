@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { supabase } from '@/lib/supabaseClient';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface TopHeaderProps {
   onMenuClick: () => void;
@@ -11,6 +12,7 @@ interface TopHeaderProps {
 
 export default function TopHeader({ onMenuClick }: TopHeaderProps) {
   const router = useRouter();
+  const { profile } = useUserProfile();
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -31,6 +33,15 @@ export default function TopHeader({ onMenuClick }: TopHeaderProps) {
       </button>
 
       <div className="flex-1" />
+
+      <div className="hidden sm:block text-right mr-4">
+        <p className="text-sm font-semibold text-slate-900">
+          Welcome, {profile?.full_name || 'User'}
+        </p>
+        <p className="text-xs text-slate-500 capitalize">
+          {profile?.role || 'staff'}
+        </p>
+      </div>
 
       <button
         onClick={handleLogout}
