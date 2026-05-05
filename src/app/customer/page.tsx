@@ -345,12 +345,12 @@ export default function CustomerPortalPage() {
             {
               title: 'Exterior Wash',
               desc: 'Body wash, rinsing, drying, and clean finishing.',
-              img: 'https://images.pexels.com/photos/6873088/pexels-photo-6873088.jpeg?auto=compress&cs=tinysrgb&w=700',
+              img: 'https://images.pexels.com/photos/3807316/pexels-photo-3807316.jpeg?auto=compress&cs=tinysrgb&w=700',
             },
             {
               title: 'Interior Cleaning',
               desc: 'Seats, dashboard, mats, and interior surface refresh.',
-              img: 'https://images.pexels.com/photos/6873081/pexels-photo-6873081.jpeg?auto=compress&cs=tinysrgb&w=700',
+              img: 'https://images.pexels.com/photos/8985541/pexels-photo-8985541.jpeg?auto=compress&cs=tinysrgb&w=700',
             },
             {
               title: 'Full Detailing',
