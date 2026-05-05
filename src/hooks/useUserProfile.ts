@@ -10,23 +10,32 @@ export function useUserProfile() {
 
   useEffect(() => {
     async function loadProfile() {
+      setLoading(true);
+
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
 
-      if (!user) {
+      if (userError || !user) {
         setProfile(null);
         setLoading(false);
         return;
       }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, role, worker_id')
+        .select('id, full_name, role, worker_id, phone')
         .eq('id', user.id)
         .single();
 
-      setProfile(data);
+      if (error) {
+        console.error('Profile load error:', error.message);
+        setProfile(null);
+      } else {
+        setProfile(data);
+      }
+
       setLoading(false);
     }
 
