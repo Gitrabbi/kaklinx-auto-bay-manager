@@ -37,6 +37,12 @@ const navItems: NavItem[] = [
     roles: ['admin', 'cashier', 'worker'],
   },
   {
+    label: 'Attendance Clock',
+    icon: <CalendarDaysIcon className="w-[18px] h-[18px] shrink-0" />,
+    href: '#attendance-clock',
+    roles: ['admin', 'cashier', 'worker'],
+  },
+  {
     label: 'Customer Orders',
     icon: <ClipboardDocumentListIcon className="w-[18px] h-[18px] shrink-0" />,
     href: '#customer-orders',
