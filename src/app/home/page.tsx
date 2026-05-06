@@ -2,6 +2,7 @@
 
 import CustomerOrdersManager from './components/CustomerOrdersManager';
 import MyWorkerJobs from './components/MyWorkerJobs';
+import WorkerClockPage from './components/WorkerClockPage';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import AuthGuard from '@/components/AuthGuard';
 import React, { useState } from 'react';
@@ -25,6 +26,7 @@ import ExpenditureManager from './components/ExpenditureManager';
 type Section =
   | '#dashboard'
   | '#work-orders'
+  | '#attendance-clock'
   | '#customer-orders'
   | '#workers'
   | '#attendance'
@@ -44,6 +46,10 @@ const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
   '#work-orders': {
     title: 'Work Orders',
     subtitle: 'Create, assign, manage, and track all vehicle service orders',
+  },
+  '#attendance-clock': {
+    title: 'Attendance Clock',
+    subtitle: 'Clock in and out with worksite location verification',
   },
   '#customer-orders': {
     title: 'Customer Orders',
@@ -157,7 +163,8 @@ function DashboardContent() {
               </div>
 
               <span className="text-xs bg-white/10 text-white border border-white/20 px-3 py-1 rounded-full">
-                {workOrders.filter((o) => o.status === 'Completed').length} completed
+                {workOrders.filter((o) => o.status === 'Completed').length}{' '}
+                completed
               </span>
             </div>
 
@@ -270,6 +277,13 @@ export default function HomePage() {
 
       case '#work-orders':
         return role === 'worker' ? <MyWorkerJobs /> : <WorkOrdersManager />;
+
+      case '#attendance-clock':
+        return (
+          <div className="rounded-3xl border border-white/70 bg-white/80 shadow-xl shadow-slate-200/60 backdrop-blur p-5">
+            <WorkerClockPage />
+          </div>
+        );
 
       case '#customer-orders':
         return (
@@ -413,4 +427,4 @@ export default function HomePage() {
       </div>
     </AuthGuard>
   );
-        }
+}
