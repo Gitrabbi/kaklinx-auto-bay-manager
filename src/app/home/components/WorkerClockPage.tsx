@@ -18,12 +18,18 @@ export default function WorkerClockPage() {
   const [message, setMessage] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const isWorker = profile?.role === 'worker';
+  const staffName = profile?.full_name || 'Staff';
+  const staffRole = profile?.role || 'staff';
+
   useEffect(() => {
-    loadInitialData();
-  }, [profile?.worker_id]);
+    if (profile?.id) {
+      loadInitialData();
+    }
+  }, [profile?.id, profile?.worker_id]);
 
   async function loadInitialData() {
-    if (!profile?.worker_id) return;
+    if (!profile?.id) return;
 
     setLoading(true);
     setErrorMsg('');
@@ -43,14 +49,20 @@ export default function WorkerClockPage() {
 
     setWorksite(siteData);
 
-    const { data: logData } = await supabase
+    let query = supabase
       .from('attendance_logs')
       .select('*')
-      .eq('worker_id', profile.worker_id)
       .eq('status', 'clocked_in')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    if (isWorker && profile.worker_id) {
+      query = query.eq('worker_id', profile.worker_id);
+    } else {
+      query = query.eq('staff_user_id', profile.id);
+    }
+
+    const { data: logData } = await query.maybeSingle();
 
     setActiveLog(logData || null);
     setLoading(false);
@@ -87,25 +99,24 @@ export default function WorkerClockPage() {
         setMessage('Location verified. You are within the worksite area.');
       } else {
         setErrorMsg(
-          `You are ${Math.round(
-            calculatedDistance
-          )} meters away from the worksite. Clock-in is only allowed within ${
-            worksite.allowed_radius_meters
-          } meters.`
+          `You are ${Math.round(calculatedDistance)} meters away from the worksite. Clock-in is only allowed within ${worksite.allowed_radius_meters} meters.`
         );
       }
-    } catch {
-      setErrorMsg(
-        'Unable to access your location. Please allow location permission and try again.'
-      );
+    } catch (error: any) {
+      setErrorMsg(error.message || 'Unable to access your location.');
     }
 
     setLoading(false);
   }
 
   async function clockIn() {
-    if (!profile?.worker_id) {
-      setErrorMsg('Your profile is not linked to a worker record.');
+    if (!profile?.id) {
+      setErrorMsg('Your login profile could not be found.');
+      return;
+    }
+
+    if (isWorker && !profile.worker_id) {
+      setErrorMsg('Your profile is not linked to a worker record. Please contact admin.');
       return;
     }
 
@@ -135,25 +146,41 @@ export default function WorkerClockPage() {
         setDistance(calculatedDistance);
         setLocationAllowed(false);
         setErrorMsg(
-          `Clock-in denied. You are ${Math.round(
-            calculatedDistance
-          )} meters away from the worksite.`
+          `Clock-in denied. You are ${Math.round(calculatedDistance)} meters away from the worksite.`
         );
         setLoading(false);
         return;
       }
 
+      const payload = isWorker
+        ? {
+            worker_id: profile.worker_id,
+            user_id: profile.id,
+            staff_user_id: profile.id,
+            staff_name: staffName,
+            staff_role: staffRole,
+            clock_in_time: new Date().toISOString(),
+            clock_in_lat: current.latitude,
+            clock_in_lng: current.longitude,
+            clock_in_method: 'self',
+            status: 'clocked_in',
+          }
+        : {
+            worker_id: null,
+            user_id: profile.id,
+            staff_user_id: profile.id,
+            staff_name: staffName,
+            staff_role: staffRole,
+            clock_in_time: new Date().toISOString(),
+            clock_in_lat: current.latitude,
+            clock_in_lng: current.longitude,
+            clock_in_method: 'self',
+            status: 'clocked_in',
+          };
+
       const { data, error } = await supabase
         .from('attendance_logs')
-        .insert({
-          worker_id: profile.worker_id,
-          user_id: profile.id,
-          clock_in_time: new Date().toISOString(),
-          clock_in_lat: current.latitude,
-          clock_in_lng: current.longitude,
-          clock_in_method: 'self',
-          status: 'clocked_in',
-        })
+        .insert(payload)
         .select()
         .single();
 
@@ -167,10 +194,8 @@ export default function WorkerClockPage() {
       setDistance(calculatedDistance);
       setLocationAllowed(true);
       setMessage('Clock-in successful.');
-    } catch {
-      setErrorMsg(
-        'Unable to access your location. Please allow location permission and try again.'
-      );
+    } catch (error: any) {
+      setErrorMsg(error.message || 'Unable to access your location.');
     }
 
     setLoading(false);
@@ -210,10 +235,8 @@ export default function WorkerClockPage() {
       setActiveLog(null);
       setClockOutReason('');
       setMessage('Clock-out successful.');
-    } catch {
-      setErrorMsg(
-        'Unable to access your location. Please allow location permission and try again.'
-      );
+    } catch (error: any) {
+      setErrorMsg(error.message || 'Unable to access your location.');
     }
 
     setLoading(false);
@@ -227,23 +250,15 @@ export default function WorkerClockPage() {
     );
   }
 
-  if (!profile?.worker_id) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-700 rounded-3xl p-6">
-        Your login profile is not linked to a worker record. Please contact admin.
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-5">
       <div className="bg-white rounded-3xl border shadow p-6">
         <h2 className="text-2xl font-bold text-slate-900">
-          Worker Clock In / Clock Out
+          Clock In / Clock Out
         </h2>
 
         <p className="text-slate-500 text-sm mt-1">
-          You can clock in only when you are within the approved worksite area.
+          Welcome, {staffName}. You can clock in only when you are within the approved worksite area.
         </p>
 
         {worksite && (
@@ -317,8 +332,7 @@ export default function WorkerClockPage() {
             <h3 className="font-bold text-slate-900">Clock In</h3>
 
             <p className="text-sm text-slate-500 mt-1">
-              Click below to clock in. Your location will be checked again before
-              the clock-in is accepted.
+              Click below to clock in. Your location will be checked again before the clock-in is accepted.
             </p>
 
             <button
@@ -363,4 +377,4 @@ export default function WorkerClockPage() {
       </div>
     </div>
   );
-  }
+}
