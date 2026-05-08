@@ -7,8 +7,18 @@ export const metadata: Metadata = {
   title: 'AutoWash — Bay Manager Dashboard',
   description: 'An all-in-one administrative suite to manage car wash work orders, staff commissions, time tracking, and vehicle identification for professional service bays.',
   icons: {
-    icon: [
-      { url: '/assets/images/app_logo.png', type: 'image/x-icon' }
+    icon: '/favicon.ico',
+  },
+  openGraph: {
+    title: 'KaklinxAuto Washing Bay',
+    description: 'Book, track, and manage car wash services.',
+    images: [
+      {
+        url: '/kaklinx-og.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'KaklinxAuto Washing Bay',
+      },
     ],
   },
 };
