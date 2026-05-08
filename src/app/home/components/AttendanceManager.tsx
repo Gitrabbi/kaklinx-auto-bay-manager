@@ -5,7 +5,6 @@ import {
   CalendarDaysIcon,
   MagnifyingGlassIcon,
   UserPlusIcon,
-  ArrowRightOnRectangleIcon,
   ArrowLeftOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 import { supabase } from '@/lib/supabaseClient';
@@ -70,12 +69,28 @@ export default function AttendanceManager() {
     setLoading(false);
   }
 
-  function getWorkerName(workerId: string) {
+  function getWorkerName(workerId?: string) {
+    if (!workerId) return '';
     return workers.find((w: any) => w.id === workerId)?.name || 'Unknown Worker';
   }
 
-  function getWorkerPhone(workerId: string) {
+  function getWorkerPhone(workerId?: string) {
+    if (!workerId) return '';
     return workers.find((w: any) => w.id === workerId)?.phone || '';
+  }
+
+  function getDisplayName(log: any) {
+    return log.worker_id
+      ? getWorkerName(log.worker_id)
+      : log.staff_name || 'Staff Member';
+  }
+
+  function getDisplayRole(log: any) {
+    return log.worker_id ? 'worker' : log.staff_role || 'staff';
+  }
+
+  function getDisplayPhone(log: any) {
+    return log.worker_id ? getWorkerPhone(log.worker_id) : '';
   }
 
   function formatTime(value?: string) {
@@ -108,8 +123,11 @@ export default function AttendanceManager() {
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
-      const workerName = getWorkerName(log.worker_id).toLowerCase();
-      const matchSearch = workerName.includes(search.toLowerCase());
+      const name = getDisplayName(log).toLowerCase();
+      const role = getDisplayRole(log).toLowerCase();
+      const matchSearch =
+        name.includes(search.toLowerCase()) ||
+        role.includes(search.toLowerCase());
 
       const logDate = formatDate(log.clock_in_time || log.created_at);
       const matchDate = !filterDate || logDate === filterDate;
@@ -157,6 +175,9 @@ export default function AttendanceManager() {
     const { error } = await supabase.from('attendance_logs').insert({
       worker_id: selectedWorkerId,
       user_id: null,
+      staff_user_id: null,
+      staff_name: getWorkerName(selectedWorkerId),
+      staff_role: 'worker',
       clock_in_time: new Date().toISOString(),
       clock_in_method: 'supervisor',
       clocked_in_by: profile?.id || null,
@@ -175,7 +196,7 @@ export default function AttendanceManager() {
     setLoading(false);
   }
 
-  async function supervisorClockOut(logId: string, workerId: string) {
+  async function supervisorClockOut(logId: string, displayName: string) {
     setMessage('');
     setErrorMsg('');
     setLoading(true);
@@ -197,7 +218,7 @@ export default function AttendanceManager() {
       return;
     }
 
-    setMessage(`${getWorkerName(workerId)} clocked out successfully.`);
+    setMessage(`${displayName} clocked out successfully.`);
     setClockOutReason('');
     await loadAttendanceLogs();
     setLoading(false);
@@ -223,26 +244,10 @@ export default function AttendanceManager() {
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          {
-            label: 'Clocked In',
-            value: clockedInCount,
-            color: 'text-green-700',
-          },
-          {
-            label: 'Clocked Out',
-            value: clockedOutCount,
-            color: 'text-slate-700',
-          },
-          {
-            label: 'Self Clock-In',
-            value: selfClockInCount,
-            color: 'text-blue-700',
-          },
-          {
-            label: 'Supervisor Clock-In',
-            value: supervisorClockInCount,
-            color: 'text-purple-700',
-          },
+          { label: 'Clocked In', value: clockedInCount, color: 'text-green-700' },
+          { label: 'Clocked Out', value: clockedOutCount, color: 'text-slate-700' },
+          { label: 'Self Clock-In', value: selfClockInCount, color: 'text-blue-700' },
+          { label: 'Supervisor Clock-In', value: supervisorClockInCount, color: 'text-purple-700' },
         ].map((item) => (
           <div key={item.label} className="bg-white rounded-2xl border p-4">
             <p className="text-xs text-slate-500">{item.label}</p>
@@ -269,13 +274,12 @@ export default function AttendanceManager() {
         <div className="flex items-center gap-2 mb-4">
           <UserPlusIcon className="w-5 h-5 text-blue-700" />
           <h2 className="text-lg font-bold text-slate-900">
-            Supervisor Clock-In
+            Supervisor Clock-In for Workers
           </h2>
         </div>
 
         <p className="text-sm text-slate-500 mb-4">
-          Use this for workers without smartphones or workers who cannot access
-          location on their device.
+          Use this for workers without smartphones or workers who cannot access location on their device.
         </p>
 
         <div className="grid md:grid-cols-[1fr_auto] gap-3">
@@ -309,7 +313,7 @@ export default function AttendanceManager() {
               Attendance Logs
             </h2>
             <p className="text-sm text-slate-500">
-              Live records from worker self clock-in and supervisor clock-in.
+              Live records from worker, admin, cashier, self clock-in, and supervisor clock-in.
             </p>
           </div>
 
@@ -319,8 +323,8 @@ export default function AttendanceManager() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search worker..."
-                className="pl-9 pr-3 py-2 text-sm rounded-xl border outline-none w-44"
+                placeholder="Search name or role..."
+                className="pl-9 pr-3 py-2 text-sm rounded-xl border outline-none w-48"
               />
             </div>
 
@@ -354,7 +358,7 @@ export default function AttendanceManager() {
                 No attendance records found
               </p>
               <p className="text-xs mt-1 text-slate-500">
-                Worker clock-ins will appear here automatically.
+                Staff clock-ins will appear here automatically.
               </p>
             </div>
           ) : (
@@ -363,7 +367,8 @@ export default function AttendanceManager() {
                 <thead>
                   <tr className="bg-slate-50 border-b">
                     {[
-                      'Worker',
+                      'Name',
+                      'Role',
                       'Date',
                       'Clock In',
                       'Clock Out',
@@ -384,20 +389,18 @@ export default function AttendanceManager() {
 
                 <tbody className="divide-y">
                   {filteredLogs.map((log) => {
-                    const hours = calculateHours(
-                      log.clock_in_time,
-                      log.clock_out_time
-                    );
+                    const hours = calculateHours(log.clock_in_time, log.clock_out_time);
+                    const displayName = getDisplayName(log);
 
                     return (
                       <tr key={log.id} className="hover:bg-blue-50/50">
                         <td className="px-4 py-3">
-                          <p className="font-bold text-slate-900">
-                            {getWorkerName(log.worker_id)}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {getWorkerPhone(log.worker_id)}
-                          </p>
+                          <p className="font-bold text-slate-900">{displayName}</p>
+                          <p className="text-xs text-slate-500">{getDisplayPhone(log)}</p>
+                        </td>
+
+                        <td className="px-4 py-3 text-xs capitalize text-slate-600">
+                          {getDisplayRole(log)}
                         </td>
 
                         <td className="px-4 py-3 text-xs text-slate-600">
@@ -427,9 +430,7 @@ export default function AttendanceManager() {
                         <td className="px-4 py-3">
                           {log.status === 'clocked_in' ? (
                             <button
-                              onClick={() =>
-                                supervisorClockOut(log.id, log.worker_id)
-                              }
+                              onClick={() => supervisorClockOut(log.id, displayName)}
                               disabled={loading}
                               className="inline-flex items-center gap-1 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white text-xs font-bold px-3 py-2 rounded-xl"
                             >
