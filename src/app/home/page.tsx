@@ -28,6 +28,7 @@ type Section =
   | '#work-orders'
   | '#attendance-clock'
   | '#customer-orders'
+  | '#customer-reviews'
   | '#workers'
   | '#attendance'
   | '#commissions'
@@ -37,7 +38,6 @@ type Section =
   | '#pricing'
   | '#utilities'
   | '#expenditures';
-  | '#customer-reviews'
 
 const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
   '#dashboard': {
@@ -55,6 +55,10 @@ const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
   '#customer-orders': {
     title: 'Customer Orders',
     subtitle: 'Review online customer requests and convert them into work orders',
+  },
+  '#customer-reviews': {
+    title: 'Customer Reviews',
+    subtitle: 'Monitor customer certifications, ratings, and service feedback',
   },
   '#workers': {
     title: 'Workers',
@@ -93,11 +97,6 @@ const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
     subtitle: 'Record business expenses and monitor profit or loss',
   },
 };
-
- '#customer-reviews': {
-  title: 'Customer Reviews',
-  subtitle: 'Monitor customer certifications, ratings, and service feedback',
-},
 
 function getStatusStyle(status: string) {
   if (status === 'Completed') {
