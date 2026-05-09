@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import jsPDF from 'jspdf';
+
 export default function CustomerCertifyPage() {
   const params = useParams();
   const orderId = params.orderId as string;
@@ -12,6 +13,7 @@ export default function CustomerCertifyPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const [satisfaction, setSatisfaction] = useState('Very satisfied');
   const [rating, setRating] = useState(5);
@@ -20,14 +22,19 @@ export default function CustomerCertifyPage() {
 
   useEffect(() => {
     async function loadOrder() {
+      setLoading(true);
+      setErrorMsg('');
+
       const { data, error } = await supabase
         .from('work_orders')
         .select('*')
         .eq('id', orderId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        alert(error.message);
+        setErrorMsg(error.message);
+      } else if (!data) {
+        setErrorMsg('Work order not found or access denied.');
       } else {
         setOrder(data);
       }
@@ -38,9 +45,10 @@ export default function CustomerCertifyPage() {
     if (orderId) loadOrder();
   }, [orderId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
+    setErrorMsg('');
 
     const { error } = await supabase
       .from('work_orders')
@@ -55,121 +63,159 @@ export default function CustomerCertifyPage() {
       .eq('id', orderId);
 
     if (error) {
-      alert(`Submit failed: ${error.message}`);
+      setErrorMsg(`Submit failed: ${error.message}`);
       setSubmitting(false);
       return;
     }
 
     setSubmitted(true);
     setSubmitting(false);
-  };
-
- const downloadInvoice = () => {
-  const doc = new jsPDF();
-
-  const invoiceNo = `INV-${order.id}`;
-  const today = new Date().toLocaleDateString();
-
-  doc.setFontSize(18);
-  doc.text('KAKLINX BAY', 20, 20);
-
-  doc.setFontSize(11);
-  doc.text('Professional Car Wash Invoice', 20, 28);
-
-  doc.setFontSize(10);
-  doc.text(`Invoice No: ${invoiceNo}`, 140, 20);
-  doc.text(`Date: ${today}`, 140, 28);
-  doc.text(`Order ID: ${order.id}`, 140, 36);
-
-  doc.line(20, 45, 190, 45);
-
-  doc.setFontSize(12);
-  doc.text('Customer / Vehicle Information', 20, 55);
-
-  doc.setFontSize(10);
-  doc.text(`Plate Number: ${order.plate}`, 20, 65);
-  doc.text(`Vehicle Type: ${order.vehicle_type}`, 20, 73);
-
-  doc.setFontSize(12);
-  doc.text('Services Ordered', 20, 90);
-
-  let y = 100;
-  doc.setFontSize(10);
-
-  (order.services || []).forEach((service: string, index: number) => {
-    doc.text(`${index + 1}. ${service}`, 25, y);
-    y += 8;
-  });
-
-  if (order.additional_service_description) {
-    doc.text(`Additional Service: ${order.additional_service_description}`, 25, y);
-    y += 8;
   }
 
-  doc.line(20, y + 4, 190, y + 4);
+  function downloadInvoice() {
+    if (!order) return;
 
-  y += 15;
+    const doc = new jsPDF();
+    const invoiceNo = `INV-${order.id}`;
+    const today = new Date().toLocaleDateString();
 
-  doc.setFontSize(12);
-  doc.text('Payment Summary', 20, y);
+    doc.setFontSize(18);
+    doc.text('KAKLINX BAY', 20, 20);
 
-  y += 10;
+    doc.setFontSize(11);
+    doc.text('Professional Car Wash Invoice', 20, 28);
 
-  doc.setFontSize(10);
-  doc.text(`Service Total: GH₵ ${Number(order.total_amount || 0).toFixed(2)}`, 120, y);
-  y += 8;
+    doc.setFontSize(10);
+    doc.text(`Invoice No: ${invoiceNo}`, 140, 20);
+    doc.text(`Date: ${today}`, 140, 28);
+    doc.text(`Order ID: ${order.id}`, 140, 36);
 
-  if (order.additional_service_cost) {
+    doc.line(20, 45, 190, 45);
+
+    doc.setFontSize(12);
+    doc.text('Customer / Vehicle Information', 20, 55);
+
+    doc.setFontSize(10);
+    doc.text(`Plate Number: ${order.plate || 'N/A'}`, 20, 65);
+    doc.text(`Vehicle Type: ${order.vehicle_type || 'N/A'}`, 20, 73);
+
+    doc.setFontSize(12);
+    doc.text('Services Ordered', 20, 90);
+
+    let y = 100;
+    doc.setFontSize(10);
+
+    (order.services || []).forEach((service: string, index: number) => {
+      doc.text(`${index + 1}. ${service}`, 25, y);
+      y += 8;
+    });
+
+    if (order.additional_service_description) {
+      doc.text(
+        `Additional Service: ${order.additional_service_description}`,
+        25,
+        y
+      );
+      y += 8;
+    }
+
+    doc.line(20, y + 4, 190, y + 4);
+    y += 15;
+
+    doc.setFontSize(12);
+    doc.text('Payment Summary', 20, y);
+    y += 10;
+
+    doc.setFontSize(10);
     doc.text(
-      `Additional Cost: GH₵ ${Number(order.additional_service_cost || 0).toFixed(2)}`,
+      `Service Total: GHS ${Number(order.total_amount || 0).toFixed(2)}`,
       120,
       y
     );
     y += 8;
-  }
 
-  if (order.discount) {
-    doc.text(`Discount: GH₵ ${Number(order.discount || 0).toFixed(2)}`, 120, y);
+    if (order.additional_service_cost) {
+      doc.text(
+        `Additional Cost: GHS ${Number(order.additional_service_cost || 0).toFixed(2)}`,
+        120,
+        y
+      );
+      y += 8;
+    }
+
+    if (order.discount) {
+      doc.text(
+        `Discount: GHS ${Number(order.discount || 0).toFixed(2)}`,
+        120,
+        y
+      );
+      y += 8;
+    }
+
+    doc.setFontSize(13);
+    doc.text(
+      `TOTAL TO BE PAID: GHS ${Number(order.total_amount || 0).toFixed(2)}`,
+      95,
+      y + 5
+    );
+
+    y += 25;
+
+    doc.setFontSize(12);
+    doc.text('Customer Certification', 20, y);
+    y += 10;
+
+    doc.setFontSize(10);
+    doc.text(`Satisfaction: ${satisfaction}`, 20, y);
     y += 8;
-  }
-
-  doc.setFontSize(13);
-  doc.text(`TOTAL TO BE PAID: GH₵ ${Number(order.total_amount || 0).toFixed(2)}`, 95, y + 5);
-
-  y += 25;
-
-  doc.setFontSize(12);
-  doc.text('Customer Certification', 20, y);
-
-  y += 10;
-
-  doc.setFontSize(10);
-  doc.text(`Satisfaction: ${satisfaction}`, 20, y);
-  y += 8;
-  doc.text(`Rating: ${rating}/5`, 20, y);
-  y += 8;
-  doc.text(`Quality Passed: ${qualityPassed ? 'Yes' : 'No / Needs Attention'}`, 20, y);
-  y += 8;
-
-  if (comment) {
-    doc.text(`Comment: ${comment}`, 20, y);
+    doc.text(`Rating: ${rating}/5`, 20, y);
     y += 8;
+    doc.text(
+      `Quality Passed: ${qualityPassed ? 'Yes' : 'No / Needs Attention'}`,
+      20,
+      y
+    );
+    y += 8;
+
+    if (comment) {
+      doc.text(`Comment: ${comment}`, 20, y);
+      y += 8;
+    }
+
+    doc.text(`Certified At: ${new Date().toLocaleString()}`, 20, y + 5);
+
+    doc.line(20, 275, 190, 275);
+    doc.setFontSize(9);
+    doc.text('Thank you for choosing Kaklinx Bay.', 20, 283);
+
+    doc.save(`${invoiceNo}.pdf`);
   }
 
-  doc.text(`Certified At: ${new Date().toLocaleString()}`, 20, y + 5);
-
-  doc.line(20, 275, 190, 275);
-  doc.setFontSize(9);
-  doc.text('Thank you for choosing Kaklinx Bay.', 20, 283);
-
-  doc.save(`${invoiceNo}.pdf`);
-};
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        Loading...
+      </div>
+    );
+  }
+
+  if (errorMsg && !order) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+        <div className="bg-white rounded-2xl shadow p-6 max-w-md text-center">
+          <h1 className="text-xl font-bold text-red-700">Unable to Load Order</h1>
+          <p className="text-sm text-slate-500 mt-2">{errorMsg}</p>
+        </div>
+      </div>
+    );
   }
 
   if (!order) {
-    return <div className="min-h-screen flex items-center justify-center">Work order not found.</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        Work order not found.
+      </div>
+    );
   }
 
   if (submitted || order.closure_status === 'closed') {
@@ -201,7 +247,9 @@ export default function CustomerCertifyPage() {
     <div className="min-h-screen bg-slate-50 p-4 flex items-center justify-center">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
         <div className="p-5 border-b">
-          <h1 className="text-xl font-bold text-slate-800">Customer Job Certification</h1>
+          <h1 className="text-xl font-bold text-slate-800">
+            Customer Job Certification
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
             Please confirm that your vehicle service has been completed.
           </p>
@@ -212,8 +260,17 @@ export default function CustomerCertifyPage() {
           <p><strong>Vehicle:</strong> {order.vehicle_type}</p>
           <p><strong>Plate:</strong> {order.plate}</p>
           <p><strong>Services:</strong> {(order.services || []).join(', ')}</p>
-          <p><strong>Amount:</strong> GH₵ {Number(order.total_amount || 0).toFixed(2)}</p>
+          <p>
+            <strong>Amount:</strong> GHS{' '}
+            {Number(order.total_amount || 0).toFixed(2)}
+          </p>
         </div>
+
+        {errorMsg && (
+          <div className="mx-5 mt-5 bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+            {errorMsg}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
@@ -226,7 +283,9 @@ export default function CustomerCertifyPage() {
                 type="button"
                 onClick={() => setQualityPassed(true)}
                 className={`rounded-lg border px-3 py-2 text-sm ${
-                  qualityPassed ? 'bg-emerald-100 border-emerald-500 text-emerald-800' : 'bg-white'
+                  qualityPassed
+                    ? 'bg-emerald-100 border-emerald-500 text-emerald-800'
+                    : 'bg-white'
                 }`}
               >
                 Yes
@@ -236,7 +295,9 @@ export default function CustomerCertifyPage() {
                 type="button"
                 onClick={() => setQualityPassed(false)}
                 className={`rounded-lg border px-3 py-2 text-sm ${
-                  !qualityPassed ? 'bg-red-100 border-red-500 text-red-800' : 'bg-white'
+                  !qualityPassed
+                    ? 'bg-red-100 border-red-500 text-red-800'
+                    : 'bg-white'
                 }`}
               >
                 No / Needs attention
@@ -245,7 +306,9 @@ export default function CustomerCertifyPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">Satisfaction</label>
+            <label className="block text-sm font-semibold mb-2">
+              Satisfaction
+            </label>
             <select
               value={satisfaction}
               onChange={(e) => setSatisfaction(e.target.value)}
@@ -267,7 +330,9 @@ export default function CustomerCertifyPage() {
                   type="button"
                   onClick={() => setRating(star)}
                   className={`w-10 h-10 rounded-lg border text-lg ${
-                    rating >= star ? 'bg-amber-100 border-amber-500 text-amber-600' : 'bg-white'
+                    rating >= star
+                      ? 'bg-amber-100 border-amber-500 text-amber-600'
+                      : 'bg-white'
                   }`}
                 >
                   ★
@@ -277,7 +342,9 @@ export default function CustomerCertifyPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">Comment optional</label>
+            <label className="block text-sm font-semibold mb-2">
+              Comment optional
+            </label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
