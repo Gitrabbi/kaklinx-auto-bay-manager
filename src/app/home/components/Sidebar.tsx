@@ -1,5 +1,5 @@
 'use client';
-
+import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import React from 'react';
 import {
@@ -48,6 +48,13 @@ const navItems: NavItem[] = [
     href: '#customer-orders',
     roles: ['admin', 'cashier'],
   },
+  {
+  label: 'Customer Reviews',
+  icon: <ChatBubbleLeftRightIcon className="w-[18px] h-[18px] shrink-0" />,
+  href: '#customer-reviews',
+  roles: ['admin', 'cashier'],
+  },
+  
   {
     label: 'Workers',
     icon: <UsersIcon className="w-[18px] h-[18px] shrink-0" />,
