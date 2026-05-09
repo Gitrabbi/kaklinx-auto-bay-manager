@@ -187,6 +187,8 @@ function CustomerOrdersTrackingContent() {
       });
 
       setWorkOrders(mapped);
+    } else {
+      setWorkOrders({});
     }
 
     setLoading(false);
@@ -208,7 +210,7 @@ function CustomerOrdersTrackingContent() {
             <div>
               <h1 className="text-3xl font-extrabold">Live Order Tracking</h1>
               <p className="text-blue-100 mt-1">
-                Track your request, job status, and live countdown.
+                Track your request, job status, countdown, and past reviews.
               </p>
             </div>
           </div>
@@ -366,6 +368,52 @@ function CustomerOrdersTrackingContent() {
                               style={{ width: `${countdown.percent}%` }}
                             />
                           </div>
+                        </div>
+                      )}
+
+                      {workOrder?.customer_certified_at && (
+                        <div className="mt-6 bg-green-50 border border-green-200 rounded-2xl p-5">
+                          <h4 className="font-bold text-green-800">
+                            Your Review / Certification
+                          </h4>
+
+                          <div className="mt-3 grid md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <p className="text-green-700">Satisfaction</p>
+                              <p className="font-bold text-slate-900">
+                                {workOrder.customer_satisfaction || 'N/A'}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-green-700">Rating</p>
+                              <p className="font-bold text-slate-900">
+                                {workOrder.customer_rating || 0}/5
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-green-700">Quality Passed</p>
+                              <p className="font-bold text-slate-900">
+                                {workOrder.quality_passed
+                                  ? 'Yes'
+                                  : 'No / Needs Attention'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {workOrder.customer_comment && (
+                            <p className="mt-3 text-sm text-slate-700">
+                              “{workOrder.customer_comment}”
+                            </p>
+                          )}
+
+                          <p className="mt-3 text-xs text-slate-500">
+                            Certified on:{' '}
+                            {new Date(
+                              workOrder.customer_certified_at
+                            ).toLocaleString()}
+                          </p>
                         </div>
                       )}
 
