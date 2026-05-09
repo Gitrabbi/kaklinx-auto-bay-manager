@@ -37,6 +37,7 @@ type Section =
   | '#pricing'
   | '#utilities'
   | '#expenditures';
+  | '#customer-reviews'
 
 const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
   '#dashboard': {
@@ -92,6 +93,11 @@ const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
     subtitle: 'Record business expenses and monitor profit or loss',
   },
 };
+
+ '#customer-reviews': {
+  title: 'Customer Reviews',
+  subtitle: 'Monitor customer certifications, ratings, and service feedback',
+},
 
 function getStatusStyle(status: string) {
   if (status === 'Completed') {
@@ -362,6 +368,12 @@ export default function HomePage() {
         return (
           <div className="rounded-3xl border border-white/70 bg-white/80 shadow-xl shadow-slate-200/60 backdrop-blur p-5">
             <ExpenditureManager />
+          </div>
+        );
+      case '#customer-reviews':
+        return (
+          <div className="rounded-3xl border border-white/70 bg-white/80 shadow-xl shadow-slate-200/60 backdrop-blur p-5">
+            <CustomerCertificationsManager />
           </div>
         );
 
