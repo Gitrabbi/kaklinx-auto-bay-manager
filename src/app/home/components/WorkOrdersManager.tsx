@@ -13,6 +13,7 @@ import {
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import QRCode from 'react-qr-code';
+import { supabase } from '@/lib/supabaseClient';
 import {
   useAppData,
   WorkOrder,
@@ -84,6 +85,64 @@ export default function WorkOrdersManager() {
   const [extendMinutes, setExtendMinutes] = useState('10');
   const [extendCategory, setExtendCategory] = useState<'operational' | 'worker_inability' | 'customer_extra_requests'>('operational');
   const [extendReason, setExtendReason] = useState('');
+  const [closedCertifiedOrderIds, setClosedCertifiedOrderIds] = useState<string[]>([]);
+
+  const getClosureStatus = (wo: any) => {
+    if (closedCertifiedOrderIds.includes(wo.id)) return 'closed';
+    return wo.closureStatus || wo.closure_status || 'open';
+  };
+
+  const shouldShowCertificationQr = (wo: any) => {
+    return wo.status === 'Completed' && getClosureStatus(wo) === 'awaiting_customer';
+  };
+
+  React.useEffect(() => {
+    const channel = supabase
+      .channel('work-order-certification-live')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'work_orders',
+        },
+        (payload) => {
+          const updated: any = payload.new;
+          const updatedId = updated?.id;
+          const updatedClosureStatus =
+            updated?.closure_status || updated?.closureStatus || 'open';
+
+          if (!updatedId) return;
+
+          if (updatedClosureStatus === 'closed') {
+            setClosedCertifiedOrderIds((prev) =>
+              prev.includes(updatedId) ? prev : [...prev, updatedId]
+            );
+          }
+
+          setViewOrder((prev) => {
+            if (!prev || prev.id !== updatedId) return prev;
+
+            return {
+              ...prev,
+              closureStatus: updatedClosureStatus,
+              customerRating: updated.customer_rating ?? prev.customerRating,
+              customerComment: updated.customer_comment ?? prev.customerComment,
+              customerSatisfaction:
+                updated.customer_satisfaction ?? prev.customerSatisfaction,
+              customerCertifiedAt:
+                updated.customer_certified_at ?? prev.customerCertifiedAt,
+              qualityPassed: updated.quality_passed ?? prev.qualityPassed,
+            };
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   React.useEffect(() => {
     const interval = setInterval(() => {
@@ -486,7 +545,7 @@ export default function WorkOrdersManager() {
                           <button type="button" onClick={() => setViewOrder(wo)} className="p-1.5 rounded-lg hover:bg-blue-50 transition-colors" title="View">
                             <EyeIcon className="w-4 h-4" style={{ color: 'hsl(205 78% 42%)' }} />
                           </button>
-                          {wo.status === 'Completed' && wo.closureStatus === 'awaiting_customer' && (
+                          {shouldShowCertificationQr(wo) && (
                             <button
                               type="button"
                               onClick={() => setViewOrder(wo)}
@@ -747,7 +806,7 @@ export default function WorkOrdersManager() {
                 ['Vehicle Type', viewOrder.vehicleType],
                 ['Services', viewOrder.services.join(', ') || '—'],
                 ['Status', viewOrder.status],
-                ['Closure Status', viewOrder.closureStatus || 'open'],
+                ['Closure Status', getClosureStatus(viewOrder)],
                 ['Assigned Workers', workers.filter((w) => viewOrder.assignedWorkers.includes(w.id)).map((w) => w.name).join(', ') || '—'],
                 ['Additional Service', (viewOrder as any).additionalServiceDescription || '—'],
                 ['Additional Cost', (viewOrder as any).additionalServiceCost ? `GH₵ ${Number((viewOrder as any).additionalServiceCost).toFixed(2)}` : '—'],
@@ -770,7 +829,7 @@ export default function WorkOrdersManager() {
                 </div>
               ))}
 
-              {viewOrder.status === 'Completed' && viewOrder.closureStatus === 'awaiting_customer' && (
+              {shouldShowCertificationQr(viewOrder) && (
                 <div className="mt-4 rounded-xl border p-4 text-center" style={{ borderColor: 'hsl(210 18% 89%)' }}>
                   <p className="text-sm font-semibold mb-3" style={{ color: 'hsl(215 25% 12%)' }}>
                     Customer Certification
