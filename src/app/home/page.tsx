@@ -1,5 +1,5 @@
 'use client';
-
+import CustomerCertificationsManager from './components/CustomerCertificationsManager';
 import CustomerOrdersManager from './components/CustomerOrdersManager';
 import MyWorkerJobs from './components/MyWorkerJobs';
 import WorkerClockPage from './components/WorkerClockPage';
