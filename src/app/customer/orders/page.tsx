@@ -5,6 +5,22 @@ import { supabase } from '@/lib/supabaseClient';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+
+function normalizePhone(phone: string) {
+  let cleaned = phone.replace(/\D/g, '');
+
+  if (cleaned.startsWith('233')) {
+    cleaned = '0' + cleaned.slice(3);
+  }
+
+  if (!cleaned.startsWith('0') && cleaned.length === 9) {
+    cleaned = '0' + cleaned;
+  }
+
+  return cleaned;
+}
+
+
 function CustomerOrdersTrackingContent() {
   const searchParams = useSearchParams();
 
@@ -157,7 +173,7 @@ function CustomerOrdersTrackingContent() {
     const { data, error } = await supabase
       .from('customer_orders')
       .select('*')
-      .eq('phone', searchPhone.trim())
+      .eq('phone', normalizePhone(searchPhone))
       .order('created_at', { ascending: false });
 
     if (error) {
