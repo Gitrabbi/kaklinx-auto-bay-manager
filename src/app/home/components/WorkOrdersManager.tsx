@@ -478,6 +478,7 @@ export default function WorkOrdersManager() {
             </p>
           </div>
         ) : (
+          <>
           <div className="block lg:hidden p-3 space-y-3">{filtered.map((wo) => (<div key={wo.id} onClick={() => setSelectedOrder(wo)} className="bg-white rounded-xl border p-4 shadow-sm cursor-pointer"><div className="flex justify-between"><div><h4 className="font-semibold">{wo.plate}</h4><p className="text-xs text-gray-500">{wo.vehicleType}</p></div><span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusConfig[wo.status].className}`}>{wo.status}</span></div><p className="mt-2 text-xs text-gray-500">{wo.services.join(', ')}</p><div className="flex justify-between mt-3"><span className="font-semibold">GH₵ {Number(wo.totalAmount || 0).toFixed(2)}</span><span className="text-blue-600 text-xs">Tap for actions →</span></div></div>))}</div><div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -589,6 +590,7 @@ export default function WorkOrdersManager() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
