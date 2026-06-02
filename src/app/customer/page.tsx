@@ -24,7 +24,7 @@ function normalizePhone(phone: string) {
 export default function CustomerPortalPage() {
   const { pricing } = useAppData();
 
-  const [customerName, setCustomerName] = useState('');
+  const [phone, setPhone] = useState('');  
   const [phone: normalizePhone(phone), setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [vehicleMake, setVehicleMake] = useState('');
@@ -182,7 +182,7 @@ export default function CustomerPortalPage() {
 
     const { error } = await supabase.from('customer_orders').insert({
       customer_name: customerName,
-      phone,
+      phone: normalizePhone(phone),
       email,
       vehicle_make: vehicleMake,
       vehicle_model: vehicleModel,
