@@ -77,6 +77,7 @@ export default function WorkOrdersManager() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [viewOrder, setViewOrder] = useState<WorkOrder | null>(null);
+  const [showQrModal, setShowQrModal] = useState<WorkOrder | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<WorkOrderStatus | 'All'>('All');
@@ -544,7 +545,7 @@ export default function WorkOrdersManager() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
-                          <button type="button" onClick={() => setViewOrder(wo)} className="p-1.5 rounded-lg hover:bg-blue-50 transition-colors" title="View">
+                          <button type="button" onClick={() => setShowQrModal(wo)} className="p-1.5 rounded-lg hover:bg-blue-50 transition-colors" title="View">
                             <EyeIcon className="w-4 h-4" style={{ color: 'hsl(205 78% 42%)' }} />
                           </button>
                           {shouldShowCertificationQr(wo) && (
@@ -602,6 +603,18 @@ export default function WorkOrdersManager() {
               <button onClick={() => setSelectedOrder(null)}><XMarkIcon className="w-5 h-5" /></button>
             </div>
             <button className="w-full py-3 rounded-lg border" onClick={() => { setViewOrder(selectedOrder); setSelectedOrder(null); }}>View Details</button>
+            {shouldShowCertificationQr(selectedOrder) && (
+              <button
+                className="w-full py-3 rounded-lg bg-blue-600 text-white"
+                onClick={() => {
+                  setShowQrModal(selectedOrder);
+                  setSelectedOrder(null);
+                }}
+              >
+                Customer Certification QR
+              </button>
+            )}
+
             {selectedOrder.status === 'Pending' && (
               <button className="w-full py-3 rounded-lg bg-emerald-600 text-white" onClick={() => { startWorkOrder(selectedOrder.id); setSelectedOrder(null); }}>Start Job</button>
             )}
@@ -879,7 +892,43 @@ export default function WorkOrdersManager() {
         </div>
       )}
 
-      {extendOrder && (
+      
+      {showQrModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 text-center">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">Customer Certification</h3>
+              <button onClick={() => setShowQrModal(null)} className="p-2 rounded-lg hover:bg-gray-100">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex justify-center mb-4">
+              <QRCode
+                value={`${window.location.origin}/customer-certify/${showQrModal.id}`}
+                size={260}
+              />
+            </div>
+
+            <p className="text-sm text-slate-600 mb-3">
+              Ask the customer to scan this QR code to certify job completion.
+            </p>
+
+            <div className="text-xs break-all p-3 rounded-lg bg-slate-100">
+              {`${window.location.origin}/customer-certify/${showQrModal.id}`}
+            </div>
+
+            <button
+              onClick={() => setShowQrModal(null)}
+              className="mt-5 w-full py-3 rounded-lg text-white font-semibold bg-blue-600"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+{extendOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
             <h3 className="font-bold text-lg">Extend Job Timeline</h3>
