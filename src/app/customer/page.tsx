@@ -23,7 +23,7 @@ function normalizePhone(phone: string) {
 
 export default function CustomerPortalPage() {
   const { pricing } = useAppData();
-
+  const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');  
   const [email, setEmail] = useState('');
   const [vehicleMake, setVehicleMake] = useState('');
