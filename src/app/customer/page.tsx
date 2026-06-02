@@ -25,7 +25,6 @@ export default function CustomerPortalPage() {
   const { pricing } = useAppData();
 
   const [phone, setPhone] = useState('');  
-  const [phone: normalizePhone(phone), setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [vehicleMake, setVehicleMake] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
