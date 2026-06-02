@@ -5,11 +5,27 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { useAppData } from '@/context/AppDataContext';
 
+
+function normalizePhone(phone: string) {
+  let cleaned = phone.replace(/\D/g, '');
+
+  if (cleaned.startsWith('233')) {
+    cleaned = '0' + cleaned.slice(3);
+  }
+
+  if (!cleaned.startsWith('0') && cleaned.length === 9) {
+    cleaned = '0' + cleaned;
+  }
+
+  return cleaned;
+}
+
+
 export default function CustomerPortalPage() {
   const { pricing } = useAppData();
 
   const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone: normalizePhone(phone), setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [vehicleMake, setVehicleMake] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
