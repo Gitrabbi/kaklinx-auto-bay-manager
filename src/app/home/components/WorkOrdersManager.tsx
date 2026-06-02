@@ -77,6 +77,7 @@ export default function WorkOrdersManager() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [viewOrder, setViewOrder] = useState<WorkOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<WorkOrderStatus | 'All'>('All');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -477,7 +478,7 @@ export default function WorkOrdersManager() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="block lg:hidden p-3 space-y-3">{filtered.map((wo) => (<div key={wo.id} onClick={() => setSelectedOrder(wo)} className="bg-white rounded-xl border p-4 shadow-sm cursor-pointer"><div className="flex justify-between"><div><h4 className="font-semibold">{wo.plate}</h4><p className="text-xs text-gray-500">{wo.vehicleType}</p></div><span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusConfig[wo.status].className}`}>{wo.status}</span></div><p className="mt-2 text-xs text-gray-500">{wo.services.join(', ')}</p><div className="flex justify-between mt-3"><span className="font-semibold">GH₵ {Number(wo.totalAmount || 0).toFixed(2)}</span><span className="text-blue-600 text-xs">Tap for actions →</span></div></div>))}</div><div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr
@@ -590,6 +591,26 @@ export default function WorkOrdersManager() {
           </div>
         )}
       </div>
+
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end lg:hidden">
+          <div className="bg-white rounded-t-3xl w-full p-5 space-y-3">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-lg">{selectedOrder.plate}</h3>
+              <button onClick={() => setSelectedOrder(null)}><XMarkIcon className="w-5 h-5" /></button>
+            </div>
+            <button className="w-full py-3 rounded-lg border" onClick={() => { setViewOrder(selectedOrder); setSelectedOrder(null); }}>View Details</button>
+            {selectedOrder.status === 'Pending' && (
+              <button className="w-full py-3 rounded-lg bg-emerald-600 text-white" onClick={() => { startWorkOrder(selectedOrder.id); setSelectedOrder(null); }}>Start Job</button>
+            )}
+            {selectedOrder.status === 'In Progress' && (
+              <button className="w-full py-3 rounded-lg bg-green-600 text-white" onClick={() => { completeWorkOrder(selectedOrder.id); setSelectedOrder(null); }}>Complete Job</button>
+            )}
+            <button className="w-full py-3 rounded-lg border" onClick={() => { openEdit(selectedOrder); setSelectedOrder(null); }}>Edit Order</button>
+            <button className="w-full py-3 rounded-lg bg-red-500 text-white" onClick={() => { setConfirmDelete(selectedOrder.id); setSelectedOrder(null); }}>Delete Order</button>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto">
