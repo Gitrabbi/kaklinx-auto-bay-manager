@@ -597,7 +597,7 @@ export default function WorkOrdersManager() {
 
       {selectedOrder && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-end lg:hidden">
-          <div className="bg-white rounded-t-3xl w-full p-5 space-y-3">
+          <div className="bg-white rounded-t-[32px] w-full p-6 space-y-3 shadow-2xl border-t border-slate-200">
             <div className="flex justify-between items-center">
               <h3 className="font-bold text-lg">{selectedOrder.plate}</h3>
               <button onClick={() => setSelectedOrder(null)}><XMarkIcon className="w-5 h-5" /></button>
@@ -865,28 +865,7 @@ export default function WorkOrdersManager() {
                 </div>
               ))}
 
-              {shouldShowCertificationQr(viewOrder) && (
-                <div className="mt-4 rounded-xl border p-4 text-center" style={{ borderColor: 'hsl(210 18% 89%)' }}>
-                  <p className="text-sm font-semibold mb-3" style={{ color: 'hsl(215 25% 12%)' }}>
-                    Customer Certification
-                  </p>
-
-                  <div className="flex justify-center">
-                    <QRCode
-                      value={`${window.location.origin}/customer-certify/${viewOrder.id}`}
-                      size={180}
-                    />
-                  </div>
-
-                  <p className="text-xs mt-3 text-slate-500">
-                    Customer should scan this QR code to certify job completion and close the work order.
-                  </p>
-
-                  <p className="text-[11px] mt-2 break-all text-slate-400">
-                    {`${window.location.origin}/customer-certify/${viewOrder.id}`}
-                  </p>
-                </div>
-              )}
+              
             </div>
           </div>
         </div>
