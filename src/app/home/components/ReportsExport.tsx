@@ -218,6 +218,41 @@ export default function ReportsExport() {
     });
   }, [workers, workOrders, commissions, attendanceLogs, selectedWorkerId]);
 
+
+  const vehicleBreakdown = useMemo(() => {
+    const map: Record<string, number> = {};
+    workOrders.forEach((wo: any) => {
+      map[wo.vehicleType] = (map[wo.vehicleType] || 0) + 1;
+    });
+    return Object.entries(map).sort((a, b) => Number(b[1]) - Number(a[1]));
+  }, [workOrders]);
+
+  const serviceBreakdown = useMemo(() => {
+    const map: Record<string, number> = {};
+    workOrders.forEach((wo: any) => {
+      (wo.services || []).forEach((service: string) => {
+        map[service] = (map[service] || 0) + 1;
+      });
+    });
+    return Object.entries(map).sort((a, b) => Number(b[1]) - Number(a[1]));
+  }, [workOrders]);
+
+  const revenueByVehicle = useMemo(() => {
+    const map: Record<string, number> = {};
+    completedOrders.forEach((wo: any) => {
+      map[wo.vehicleType] =
+        (map[wo.vehicleType] || 0) + Number(wo.totalAmount || 0);
+    });
+    return Object.entries(map).sort((a, b) => Number(b[1]) - Number(a[1]));
+  }, [completedOrders]);
+
+  const topWorkers = useMemo(() => {
+    return [...workerPerformanceRows]
+      .sort((a, b) => b.completedJobs - a.completedJobs)
+      .slice(0, 5);
+  }, [workerPerformanceRows]);
+
+
   const handleExport = async () => {
     const ts = new Date().toISOString().split('T')[0];
 
@@ -580,6 +615,50 @@ export default function ReportsExport() {
           Attendance export now uses the new attendance_logs table. Worker performance can be exported for all workers or one selected worker.
         </p>
       </div>
+
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl border p-5">
+          <h2 className="font-semibold mb-4">Vehicle Breakdown</h2>
+          {vehicleBreakdown.map(([vehicle, count]) => (
+            <div key={String(vehicle)} className="flex justify-between py-2 border-b">
+              <span>{String(vehicle)}</span>
+              <span className="font-semibold">{String(count)}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-xl border p-5">
+          <h2 className="font-semibold mb-4">Service Breakdown</h2>
+          {serviceBreakdown.map(([service, count]) => (
+            <div key={String(service)} className="flex justify-between py-2 border-b">
+              <span>{String(service)}</span>
+              <span className="font-semibold">{String(count)}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-xl border p-5">
+          <h2 className="font-semibold mb-4">Revenue By Vehicle Type</h2>
+          {revenueByVehicle.map(([vehicle, amount]) => (
+            <div key={String(vehicle)} className="flex justify-between py-2 border-b">
+              <span>{String(vehicle)}</span>
+              <span className="font-semibold">GH₵ {Number(amount).toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-xl border p-5">
+          <h2 className="font-semibold mb-4">Top Performing Workers</h2>
+          {topWorkers.map((worker, index) => (
+            <div key={worker.worker.id} className="flex justify-between py-2 border-b">
+              <span>{index + 1}. {worker.worker.name}</span>
+              <span className="font-semibold">{worker.completedJobs} jobs</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
 
       <div
         className="bg-white rounded-xl border p-5"
