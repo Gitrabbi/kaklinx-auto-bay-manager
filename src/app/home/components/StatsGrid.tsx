@@ -1,38 +1,76 @@
 'use client';
+
 import React from 'react';
 import {
   ClipboardDocumentListIcon,
   ClockIcon,
   CurrencyDollarIcon,
   UsersIcon,
+  TrophyIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 
 interface StatCardProps {
   label: string;
   value: string;
   icon: React.ReactNode;
+  color: string;
+  bgColor: string;
+  trend?: string;
 }
 
-function StatCard({ label, value, icon }: StatCardProps) {
+function StatCard({
+  label,
+  value,
+  icon,
+  color,
+  bgColor,
+  trend,
+}: StatCardProps) {
   return (
-    <div
-      className="bg-white rounded-xl border p-5 relative overflow-hidden card-hover"
-      style={{ borderColor: 'hsl(210 18% 89%)' }}
-    >
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className="text-sm font-medium" style={{ color: 'hsl(215 10% 48%)' }}>
-            {label}
-          </p>
-          <p className="text-2xl font-bold" style={{ color: 'hsl(215 25% 12%)' }}>
-            {value}
-          </p>
-        </div>
-        <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: 'hsla(205, 78%, 42%, 0.1)', color: 'hsl(205 78% 42%)' }}
-        >
-          {icon}
+    <div className="group relative overflow-hidden rounded-3xl border border-white/70 bg-white shadow-xl shadow-slate-200/60 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+      <div
+        className="absolute inset-0 opacity-5"
+        style={{
+          background: `linear-gradient(135deg, ${color}, transparent)`,
+        }}
+      />
+
+      <div className="relative p-5">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {label}
+            </p>
+
+            <h3 className="mt-2 text-2xl font-bold text-slate-900">
+              {value}
+            </h3>
+
+            {trend && (
+              <div className="mt-2">
+                <span
+                  className="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold"
+                  style={{
+                    backgroundColor: bgColor,
+                    color,
+                  }}
+                >
+                  {trend}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center"
+            style={{
+              backgroundColor: bgColor,
+              color,
+            }}
+          >
+            {icon}
+          </div>
         </div>
       </div>
     </div>
@@ -57,13 +95,62 @@ export default function StatsGrid({
   netProfitOrLoss,
 }: StatsGridProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 stagger-children">
-      <StatCard label="Today's Orders" value={String(todayOrders)} icon={<ClipboardDocumentListIcon className="w-5 h-5" />} />
-      <StatCard label="Active Jobs" value={String(activeJobs)} icon={<ClockIcon className="w-5 h-5" />} />
-      <StatCard label="Today's Revenue" value={todayRevenue} icon={<CurrencyDollarIcon className="w-5 h-5" />} />
-      <StatCard label="Active Workers" value={String(activeWorkers)} icon={<UsersIcon className="w-5 h-5" />} />
-      <StatCard label="Daily Expenditure" value={todayExpenditure} icon={<CurrencyDollarIcon className="w-5 h-5" />} />
-      <StatCard label="Profit / Loss" value={netProfitOrLoss} icon={<CurrencyDollarIcon className="w-5 h-5" />} />
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-5">
+
+      <StatCard
+        label="Vehicles Today"
+        value={String(todayOrders)}
+        icon={<ClipboardDocumentListIcon className="w-7 h-7" />}
+        color="#0F4C81"
+        bgColor="rgba(15,76,129,0.12)"
+        trend="+ Today"
+      />
+
+      <StatCard
+        label="Active Jobs"
+        value={String(activeJobs)}
+        icon={<ClockIcon className="w-7 h-7" />}
+        color="#F59E0B"
+        bgColor="rgba(245,158,11,0.12)"
+        trend="In Progress"
+      />
+
+      <StatCard
+        label="Revenue"
+        value={todayRevenue}
+        icon={<CurrencyDollarIcon className="w-7 h-7" />}
+        color="#22C55E"
+        bgColor="rgba(34,197,94,0.12)"
+        trend="Today's Income"
+      />
+
+      <StatCard
+        label="Workers"
+        value={String(activeWorkers)}
+        icon={<UsersIcon className="w-7 h-7" />}
+        color="#8B5CF6"
+        bgColor="rgba(139,92,246,0.12)"
+        trend="Available"
+      />
+
+      <StatCard
+        label="Expenses"
+        value={todayExpenditure}
+        icon={<CurrencyDollarIcon className="w-7 h-7" />}
+        color="#EF4444"
+        bgColor="rgba(239,68,68,0.12)"
+        trend="Today's Cost"
+      />
+
+      <StatCard
+        label="Profit / Loss"
+        value={netProfitOrLoss}
+        icon={<TrophyIcon className="w-7 h-7" />}
+        color="#14B8A6"
+        bgColor="rgba(20,184,166,0.12)"
+        trend="Net Position"
+      />
+
     </div>
   );
 }
