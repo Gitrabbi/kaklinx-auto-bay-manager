@@ -327,7 +327,7 @@ function CustomerOrdersTrackingContent() {
                     </div>
 
                     <div className="p-6">
-                      <div className="grid md:grid-cols-3 gap-4 text-sm">
+                      <div className="grid md:grid-cols-5 gap-4 text-sm">
                         <div>
                           <p className="text-slate-500">Vehicle Type</p>
                           <p className="font-bold text-slate-900">
@@ -350,7 +350,15 @@ function CustomerOrdersTrackingContent() {
                         </div>
                       </div>
 
-                      {workOrder && countdown && (
+                      {workOrder && (
+<div className="mt-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-5">
+<div className="grid grid-cols-3 gap-4 text-center">
+<div><p className="text-blue-100 text-sm">Queue Number</p><p className="text-3xl font-extrabold">{workOrder?.queue_number || workOrder?.queueNumber || '-'}</p></div>
+<div><p className="text-blue-100 text-sm">Position</p><p className="text-3xl font-extrabold">#{workOrder?.queue_position || workOrder?.queuePosition || '-'}</p></div>
+<div><p className="text-blue-100 text-sm">Vehicles Ahead</p><p className="text-3xl font-extrabold">{Math.max(0, Number(workOrder?.queue_position || workOrder?.queuePosition || 1)-1)}</p></div>
+</div></div>)}
+
+{workOrder && countdown && (
                         <div className="mt-6 bg-slate-50 border rounded-2xl p-5">
                           <div className="flex justify-between gap-4">
                             <div>
