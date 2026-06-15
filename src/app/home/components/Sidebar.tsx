@@ -36,6 +36,12 @@ const navItems: NavItem[] = [
     href: '#work-orders',
     roles: ['admin', 'cashier', 'worker'],
   },
+   {
+    label: 'Queue Manager',
+    icon: <ClipboardDocumentListIcon className="w-[18px] h-[18px] shrink-0" />,
+    href: '#queue-manager',
+    roles: ['admin', 'cashier'],
+  },
   {
     label: 'Attendance Clock',
     icon: <CalendarDaysIcon className="w-[18px] h-[18px] shrink-0" />,
