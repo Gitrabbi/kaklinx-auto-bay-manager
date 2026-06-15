@@ -288,6 +288,12 @@ export default function HomePage() {
 
       case '#work-orders':
         return role === 'worker' ? <MyWorkerJobs /> : <WorkOrdersManager />;
+      case '#queue-manager':
+        return (
+          <div className="rounded-3xl border border-white/70 bg-white/80 shadow-xl shadow-slate-200/60 backdrop-blur p-5">
+            <QueueManager />
+          </div>
+        );
 
       case '#attendance-clock':
         return (
