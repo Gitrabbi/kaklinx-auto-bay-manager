@@ -1,4 +1,5 @@
 'use client';
+import QueueManager from './components/QueueManager';
 import CustomerCertificationsManager from './components/CustomerCertificationsManager';
 import CustomerOrdersManager from './components/CustomerOrdersManager';
 import MyWorkerJobs from './components/MyWorkerJobs';
@@ -37,7 +38,8 @@ type Section =
   | '#reports'
   | '#pricing'
   | '#utilities'
-  | '#expenditures';
+  | '#expenditures'
+  | '#queue-manager';
 
 const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
   '#dashboard': {
@@ -47,6 +49,10 @@ const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
   '#work-orders': {
     title: 'Work Orders',
     subtitle: 'Create, assign, manage, and track all vehicle service orders',
+  },
+  '#queue-manager': {
+  title: 'Queue Manager',
+  subtitle: 'Live queue operations and customer waiting times',
   },
   '#attendance-clock': {
     title: 'Attendance Clock',
