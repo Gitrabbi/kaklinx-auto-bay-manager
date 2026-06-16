@@ -164,6 +164,12 @@ function CustomerOrdersTrackingContent() {
   function getEstimatedWaitTime(workOrder: any) {
     if (!workOrder) return null;
 
+    // Don't show wait time if work order is already completed or in progress
+    const workOrderStatus = workOrder?.status?.toLowerCase() || '';
+    if (workOrderStatus === 'completed' || workOrderStatus === 'in_progress') {
+      return null;
+    }
+
     const vehiclesAhead = Math.max(0, Number(workOrder?.queue_position || workOrder?.queuePosition || 1) - 1);
     
     if (vehiclesAhead === 0) return null;
@@ -193,15 +199,30 @@ function CustomerOrdersTrackingContent() {
     return status === 'pending' || status === 'converted' || status === 'in_progress';
   }
 
-  function isOrderCompleted(order: any): boolean {
+  function isOrderCompletedByCustomerOrder(order: any): boolean {
     const status = order.status?.toLowerCase() || '';
-    // Check if order has been completed
+    // Check if order has been completed in customer_orders table
     return status === 'completed' || status === 'cancelled';
+  }
+
+  function isOrderCompletedByWorkOrder(order: any): boolean {
+    const workOrderId = order.converted_work_order_id;
+    const workOrder = workOrderId ? workOrders[String(workOrderId)] : null;
+    
+    if (!workOrder) return false;
+    
+    const workOrderStatus = workOrder?.status?.toLowerCase() || '';
+    return workOrderStatus === 'completed';
+  }
+
+  function isOrderCompleted(order: any): boolean {
+    // Order is considered completed if EITHER the customer_order OR work_order is completed
+    return isOrderCompletedByCustomerOrder(order) || isOrderCompletedByWorkOrder(order);
   }
 
   function getFilteredOrders(): any[] {
     if (activeTab === 'active') {
-      return orders.filter(order => isOrderActive(order));
+      return orders.filter(order => isOrderActive(order) && !isOrderCompleted(order));
     } else {
       return orders.filter(order => isOrderCompleted(order));
     }
@@ -277,7 +298,7 @@ function CustomerOrdersTrackingContent() {
   }
 
   const filteredOrders = getFilteredOrders();
-  const activeCount = orders.filter(o => isOrderActive(o)).length;
+  const activeCount = orders.filter(o => isOrderActive(o) && !isOrderCompleted(o)).length;
   const historyCount = orders.filter(o => isOrderCompleted(o)).length;
 
   return (
