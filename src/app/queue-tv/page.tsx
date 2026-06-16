@@ -172,7 +172,7 @@ export default function QueueTVPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black tracking-[0.2em] text-white">
-                KAKLINX <span className="text-cyan-300">AUTO</span> MANAGEMENT
+                KAKLINX <span className="text-cyan-300">AUTO</span> BAY MANAGER 
               </h1>
               <p className="mt-1 text-xs font-medium uppercase tracking-[0.4em] text-slate-400">
                 Live Service Dashboard
