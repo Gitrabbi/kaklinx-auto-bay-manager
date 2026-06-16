@@ -131,9 +131,9 @@ export default function QueueTVPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-6xl font-black tracking-wider">
-            KAKLINX AUTO MANAGEMENT
+            KAKLINX AUTO WASHING BAY
           </h1>
-          <p className="text-slate-400 text-xl mt-2">Premium Queue Display</p>
+          <p className="text-slate-400 text-xl mt-2">Customer Queue Manager</p>
         </div>
 
         <div className="text-right">
