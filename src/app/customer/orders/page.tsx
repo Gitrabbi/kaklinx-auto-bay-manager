@@ -160,6 +160,32 @@ function CustomerOrdersTrackingContent() {
     };
   }
 
+  function getEstimatedWaitTime(workOrder: any) {
+    if (!workOrder) return null;
+
+    const vehiclesAhead = Math.max(0, Number(workOrder?.queue_position || workOrder?.queuePosition || 1) - 1);
+    
+    if (vehiclesAhead === 0) return null;
+
+    const targetMinutes = getTargetMinutes(workOrder);
+    const totalWaitMinutes = targetMinutes * vehiclesAhead;
+
+    // Calculate future time
+    const futureMs = now + (totalWaitMinutes * 60 * 1000);
+    const futureDate = new Date(futureMs);
+
+    // Format as HH:MM
+    const hours = String(futureDate.getHours()).padStart(2, '0');
+    const minutes = String(futureDate.getMinutes()).padStart(2, '0');
+    const timeFormat = `${hours}:${minutes}`;
+
+    return {
+      minutes: totalWaitMinutes,
+      timeFormat: timeFormat,
+      vehiclesAhead: vehiclesAhead,
+    };
+  }
+
   async function loadOrders(phoneNumber?: string) {
     const searchPhone = phoneNumber || phone;
 
@@ -298,6 +324,7 @@ function CustomerOrdersTrackingContent() {
 
                 const liveStatus = getWorkOrderStatus(order);
                 const countdown = getCountdown(workOrder);
+                const estimatedWait = getEstimatedWaitTime(workOrder);
 
                 return (
                   <div
@@ -356,7 +383,38 @@ function CustomerOrdersTrackingContent() {
 <div><p className="text-blue-100 text-sm">Queue Number</p><p className="text-3xl font-extrabold">{workOrder?.queue_number || workOrder?.queueNumber || '-'}</p></div>
 <div><p className="text-blue-100 text-sm">Position</p><p className="text-3xl font-extrabold">#{workOrder?.queue_position || workOrder?.queuePosition || '-'}</p></div>
 <div><p className="text-blue-100 text-sm">Vehicles Ahead</p><p className="text-3xl font-extrabold">{Math.max(0, Number(workOrder?.queue_position || workOrder?.queuePosition || 1)-1)}</p></div>
-</div></div>)}
+</div>
+</div>)}
+
+{workOrder && estimatedWait && (
+                        <div className="mt-4 bg-purple-50 border border-purple-200 rounded-2xl p-5">
+                          <div className="flex justify-between gap-4">
+                            <div>
+                              <p className="text-sm text-purple-700 font-semibold">
+                                Estimated Wait Time
+                              </p>
+                              <p className="text-3xl font-extrabold text-purple-900 mt-2">
+                                {estimatedWait.minutes} mins
+                              </p>
+                              <p className="text-sm text-purple-600 mt-1">
+                                Approx: {estimatedWait.timeFormat}
+                              </p>
+                            </div>
+
+                            <div className="text-right">
+                              <p className="text-sm text-purple-700 font-semibold">
+                                Based On
+                              </p>
+                              <p className="text-lg font-bold text-purple-900 mt-2">
+                                {estimatedWait.vehiclesAhead} vehicle{estimatedWait.vehiclesAhead !== 1 ? 's' : ''} ahead
+                              </p>
+                              <p className="text-xs text-purple-600 mt-1">
+                                ~{getTargetMinutes(workOrder)} min per vehicle
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
 {workOrder && countdown && (
                         <div className="mt-6 bg-slate-50 border rounded-2xl p-5">
@@ -430,7 +488,7 @@ function CustomerOrdersTrackingContent() {
 
                           {workOrder.customer_comment && (
                             <p className="mt-3 text-sm text-slate-700">
-                              “{workOrder.customer_comment}”
+                              "{workOrder.customer_comment}"
                             </p>
                           )}
 
