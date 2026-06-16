@@ -1,0 +1,3 @@
+- The workspace is fully writable.
+- Apply code changes directly to the current working branch.
+- Do not default to creating a new branch or pull request for small incremental edits.
