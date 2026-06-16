@@ -188,15 +188,22 @@ function CustomerOrdersTrackingContent() {
   }
 
   function isOrderActive(order: any): boolean {
-    const status = order.status;
-    return status === 'pending' || status === 'converted' || status === 'in_progress' || status === 'In Progress';
+    const status = order.status?.toLowerCase() || '';
+    // Only these statuses are considered active
+    return status === 'pending' || status === 'converted' || status === 'in_progress';
+  }
+
+  function isOrderCompleted(order: any): boolean {
+    const status = order.status?.toLowerCase() || '';
+    // Check if order has been completed
+    return status === 'completed' || status === 'cancelled';
   }
 
   function getFilteredOrders(): any[] {
     if (activeTab === 'active') {
       return orders.filter(order => isOrderActive(order));
     } else {
-      return orders.filter(order => !isOrderActive(order));
+      return orders.filter(order => isOrderCompleted(order));
     }
   }
 
@@ -270,6 +277,8 @@ function CustomerOrdersTrackingContent() {
   }
 
   const filteredOrders = getFilteredOrders();
+  const activeCount = orders.filter(o => isOrderActive(o)).length;
+  const historyCount = orders.filter(o => isOrderCompleted(o)).length;
 
   return (
     <main className="min-h-screen bg-slate-100">
@@ -346,7 +355,7 @@ function CustomerOrdersTrackingContent() {
 
         {searched && orders.length > 0 && (
           <div className="mt-8">
-            <div className="flex gap-4 border-b border-slate-200">
+            <div className="flex gap-4 border-b border-slate-200 bg-white rounded-t-2xl px-6">
               <button
                 onClick={() => setActiveTab('active')}
                 className={`px-6 py-4 font-bold transition ${
@@ -355,7 +364,7 @@ function CustomerOrdersTrackingContent() {
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Active Orders ({orders.filter(o => isOrderActive(o)).length})
+                Active Orders ({activeCount})
               </button>
               <button
                 onClick={() => setActiveTab('history')}
@@ -365,7 +374,7 @@ function CustomerOrdersTrackingContent() {
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Order History ({orders.filter(o => !isOrderActive(o)).length})
+                Order History ({historyCount})
               </button>
             </div>
           </div>
@@ -405,7 +414,7 @@ function CustomerOrdersTrackingContent() {
                 const liveStatus = getWorkOrderStatus(order);
                 const countdown = getCountdown(workOrder);
                 const estimatedWait = getEstimatedWaitTime(workOrder);
-                const isActive = isOrderActive(order);
+                const isCompleted = isOrderCompleted(order);
 
                 return (
                   <div
@@ -604,13 +613,19 @@ function CustomerOrdersTrackingContent() {
                         </div>
                       )}
 
-                      {order.status !== 'converted' && (
+                      {order.status !== 'converted' && !isCompleted && (
                         <div className="mt-6 bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
                           Your order has been received and is awaiting work order processing.
                         </div>
                       )}
 
-                      {!isActive && (
+                      {isCompleted && (
+                        <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
+                          ✓ This order has been completed.
+                        </div>
+                      )}
+
+                      {isCompleted && (
                         <div className="mt-6">
                           <button
                             onClick={() => handleReorder(order)}
