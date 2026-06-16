@@ -31,6 +31,7 @@ function CustomerOrdersTrackingContent() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -186,6 +187,19 @@ function CustomerOrdersTrackingContent() {
     };
   }
 
+  function isOrderActive(order: any): boolean {
+    const status = order.status;
+    return status === 'pending' || status === 'converted' || status === 'in_progress' || status === 'In Progress';
+  }
+
+  function getFilteredOrders(): any[] {
+    if (activeTab === 'active') {
+      return orders.filter(order => isOrderActive(order));
+    } else {
+      return orders.filter(order => !isOrderActive(order));
+    }
+  }
+
   async function loadOrders(phoneNumber?: string) {
     const searchPhone = phoneNumber || phone;
 
@@ -238,6 +252,25 @@ function CustomerOrdersTrackingContent() {
     setLoading(false);
   }
 
+  function handleReorder(order: any) {
+    const reorderData = {
+      customerName: order.customer_name,
+      phone: order.phone,
+      email: order.email,
+      vehicleMake: order.vehicle_make,
+      vehicleModel: order.vehicle_model,
+      licensePlate: order.license_plate,
+      vehicleType: order.vehicle_type,
+      selectedServices: order.selected_services || [],
+      notes: `Reorder from order #${order.id}`,
+    };
+
+    localStorage.setItem('kaklinx_customer_order', JSON.stringify(reorderData));
+    window.location.href = '/customer#order-form';
+  }
+
+  const filteredOrders = getFilteredOrders();
+
   return (
     <main className="min-h-screen bg-slate-100">
       <section className="bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 text-white px-6 py-10">
@@ -259,12 +292,21 @@ function CustomerOrdersTrackingContent() {
             </div>
           </div>
 
-          <Link
-            href="/customer"
-            className="hidden sm:inline-flex bg-white text-blue-950 font-bold px-5 py-3 rounded-xl hover:bg-blue-50"
-          >
-            New Order
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/customer/orders/history"
+              className="hidden sm:inline-flex bg-white/10 border border-white/20 text-white font-bold px-5 py-3 rounded-xl hover:bg-white/20"
+            >
+              Service History
+            </Link>
+
+            <Link
+              href="/customer"
+              className="hidden sm:inline-flex bg-white text-blue-950 font-bold px-5 py-3 rounded-xl hover:bg-blue-50"
+            >
+              New Order
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -302,6 +344,33 @@ function CustomerOrdersTrackingContent() {
           )}
         </div>
 
+        {searched && orders.length > 0 && (
+          <div className="mt-8">
+            <div className="flex gap-4 border-b border-slate-200">
+              <button
+                onClick={() => setActiveTab('active')}
+                className={`px-6 py-4 font-bold transition ${
+                  activeTab === 'active'
+                    ? 'text-blue-700 border-b-2 border-blue-700'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Active Orders ({orders.filter(o => isOrderActive(o)).length})
+              </button>
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`px-6 py-4 font-bold transition ${
+                  activeTab === 'history'
+                    ? 'text-blue-700 border-b-2 border-blue-700'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Order History ({orders.filter(o => !isOrderActive(o)).length})
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mt-8">
           {loading ? (
             <div className="bg-white rounded-3xl shadow border p-8 text-center">
@@ -314,9 +383,20 @@ function CustomerOrdersTrackingContent() {
                 We could not find any orders with this phone number.
               </p>
             </div>
+          ) : searched && filteredOrders.length === 0 ? (
+            <div className="bg-white rounded-3xl shadow border p-8 text-center">
+              <h3 className="font-bold text-slate-900">
+                {activeTab === 'active' ? 'No active orders' : 'No order history'}
+              </h3>
+              <p className="text-slate-500 text-sm mt-1">
+                {activeTab === 'active'
+                  ? 'You have no active orders at the moment.'
+                  : 'You have no completed orders in your history.'}
+              </p>
+            </div>
           ) : (
             <div className="space-y-5">
-              {orders.map((order) => {
+              {filteredOrders.map((order) => {
                 const workOrderId = order.converted_work_order_id;
                 const workOrder = workOrderId
                   ? workOrders[String(workOrderId)]
@@ -325,6 +405,7 @@ function CustomerOrdersTrackingContent() {
                 const liveStatus = getWorkOrderStatus(order);
                 const countdown = getCountdown(workOrder);
                 const estimatedWait = getEstimatedWaitTime(workOrder);
+                const isActive = isOrderActive(order);
 
                 return (
                   <div
@@ -376,6 +457,22 @@ function CustomerOrdersTrackingContent() {
                           </p>
                         </div>
                       </div>
+
+                      {order.selected_services && order.selected_services.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-slate-200">
+                          <p className="text-sm text-slate-500 mb-2">Services</p>
+                          <div className="flex flex-wrap gap-2">
+                            {(Array.isArray(order.selected_services) ? order.selected_services : []).map((service: any, idx: number) => (
+                              <span
+                                key={idx}
+                                className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium border border-blue-200"
+                              >
+                                {typeof service === 'string' ? service : service.serviceName || service.service_name || 'Service'}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {workOrder && (
 <div className="mt-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-5">
@@ -510,6 +607,17 @@ function CustomerOrdersTrackingContent() {
                       {order.status !== 'converted' && (
                         <div className="mt-6 bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
                           Your order has been received and is awaiting work order processing.
+                        </div>
+                      )}
+
+                      {!isActive && (
+                        <div className="mt-6">
+                          <button
+                            onClick={() => handleReorder(order)}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2"
+                          >
+                            🔄 Reorder This Service
+                          </button>
                         </div>
                       )}
                     </div>
