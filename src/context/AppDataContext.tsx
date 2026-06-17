@@ -213,13 +213,18 @@ function normalizeQueueOrders(orders: WorkOrder[]) {
 
   // "Active" = currently in the queue (being served or waiting).
   // Vehicles ahead = count of active orders sorted ahead of you.
+  // Queue Number and Position are unified: both = 1-indexed rank among actives.
+  // As cars complete and drop out, everyone behind moves up by one.
   const activeOrders = todaysOrders.filter(
     (wo) => wo.status === 'Pending' || wo.status === 'In Progress'
   );
 
+  const queueNumberById = new Map<string, string>();
   const queuePositionById = new Map<string, number>();
   activeOrders.forEach((wo, index) => {
-    queuePositionById.set(wo.id, index + 1);
+    const rank = index + 1;
+    queueNumberById.set(wo.id, `A-${String(rank).padStart(3, '0')}`);
+    queuePositionById.set(wo.id, rank);
   });
 
   return orders.map((wo) => {
@@ -228,10 +233,9 @@ function normalizeQueueOrders(orders: WorkOrder[]) {
     return {
       ...wo,
       queueDate,
-      // Queue number stays as assigned (sticky sequence of arrival today).
-      queueNumber: wo.queueNumber || '',
-      // Queue position is dynamic: 1-indexed rank among active orders.
-      // Completed / cancelled orders fall back to their last value or 0.
+      // Active orders get position-derived numbers; completed/cancelled keep
+      // their last value so receipts / history still make sense.
+      queueNumber: queueNumberById.get(wo.id) || wo.queueNumber || '',
       queuePosition: queuePositionById.get(wo.id) ?? wo.queuePosition ?? 0,
     };
   });
@@ -515,32 +519,29 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, [loadAllData]);
 
 
-  // Queue number = sticky sequence of arrival today (never changes for an order).
-  // Queue position is derived dynamically by normalizeQueueOrders based on active count,
-  // so a new arrival always lands at the correct rank regardless of completed jobs.
-  const generateQueueNumber = useCallback((existingOrders: WorkOrder[]) => {
-    const queueDate = todayISO();
-    const todaysCount = existingOrders.filter((wo) => getQueueDate(wo) === queueDate).length;
-    return `A-${String(todaysCount + 1).padStart(3, '0')}`;
-  }, []);
+  // Queue number is now derived by normalizeQueueOrders (active-rank based).
+  // Kept this helper removed in favor of the single source of truth in normalize.
 
   const addWorkOrder = useCallback((wo: Omit<WorkOrder, 'id' | 'createdAt'>): WorkOrder => {
     const id = genId('WO');
     const createdAt = new Date().toISOString();
     const queueDate = todayISO();
-    const queueNumber = generateQueueNumber(workOrders);
 
+    // queueNumber and queuePosition are both derived by normalizeQueueOrders
+    // from the active (Pending + In Progress) order of today. We pass empty
+    // placeholders here and rely on the eager normalize below to assign
+    // correct values before the DB insert.
     const provisional: WorkOrder = {
       ...wo,
-      queueNumber,
-      queuePosition: 0, // overwritten by normalizeQueueOrders below
+      queueNumber: '',
+      queuePosition: 0,
       queueDate,
       id,
       createdAt,
     };
 
     // Compute normalized list eagerly so the DB insert carries the
-    // correct queuePosition (1 if first active, otherwise rank among actives).
+    // correct queueNumber + queuePosition (1-based rank among actives).
     const normalizedList = normalizeQueueOrders([provisional, ...workOrders]);
     const newWO = normalizedList.find((w) => w.id === id)!;
 
@@ -549,7 +550,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       if (error) console.error('Add work order error:', error.message);
     });
     return newWO;
-  }, [generateQueueNumber, workOrders]);
+  }, [workOrders]);
 
   const updateWorkOrder = useCallback((id: string, updates: Partial<WorkOrder>) => {
     setWorkOrders((prev) => {
