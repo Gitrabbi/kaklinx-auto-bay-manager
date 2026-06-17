@@ -211,19 +211,14 @@ function normalizeQueueOrders(orders: WorkOrder[]) {
       return (a.queuePosition || 0) - (b.queuePosition || 0);
     });
 
-  const pendingOrders = todaysOrders.filter((wo) => wo.status === 'Pending');
+  // "Active" = currently in the queue (being served or waiting).
+  // Vehicles ahead = count of active orders sorted ahead of you.
+  const activeOrders = todaysOrders.filter(
+    (wo) => wo.status === 'Pending' || wo.status === 'In Progress'
+  );
 
-  const queueNumberById = new Map<string, string>();
   const queuePositionById = new Map<string, number>();
-
-  todaysOrders.forEach((wo, index) => {
-    queueNumberById.set(
-      wo.id,
-      wo.queueNumber || `A-${String(index + 1).padStart(3, '0')}`
-    );
-  });
-
-  pendingOrders.forEach((wo, index) => {
+  activeOrders.forEach((wo, index) => {
     queuePositionById.set(wo.id, index + 1);
   });
 
@@ -232,12 +227,12 @@ function normalizeQueueOrders(orders: WorkOrder[]) {
 
     return {
       ...wo,
-      queueDate: queueDate,
-      queueNumber: queueNumberById.get(wo.id) || wo.queueNumber || '',
-      queuePosition:
-        wo.status === 'Pending'
-          ? queuePositionById.get(wo.id) || wo.queuePosition || 0
-          : wo.queuePosition || 0,
+      queueDate,
+      // Queue number stays as assigned (sticky sequence of arrival today).
+      queueNumber: wo.queueNumber || '',
+      // Queue position is dynamic: 1-indexed rank among active orders.
+      // Completed / cancelled orders fall back to their last value or 0.
+      queuePosition: queuePositionById.get(wo.id) ?? wo.queuePosition ?? 0,
     };
   });
 }
@@ -462,7 +457,33 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     if (workersRes.data) setWorkers(workersRes.data.map(dbToWorker));
     if (pricingRes.data) setPricing(pricingRes.data.map(dbToPricing));
-    if (workOrdersRes.data) setWorkOrders(normalizeQueueOrders(workOrdersRes.data.map(dbToWorkOrder)));
+    if (workOrdersRes.data) {
+      const normalizedWorkOrders = normalizeQueueOrders(workOrdersRes.data.map(dbToWorkOrder));
+      setWorkOrders(normalizedWorkOrders);
+
+      // Self-heal: persist corrected queue_number / queue_position back to the DB
+      // so customer-facing views (which read queue_position directly from Supabase)
+      // show the right values immediately, not just after the next mutation.
+      normalizedWorkOrders.forEach((wo) => {
+        const original = workOrdersRes.data!.find((row: any) => row.id === wo.id);
+        if (
+          original &&
+          (original.queue_position !== wo.queuePosition ||
+            original.queue_number !== wo.queueNumber)
+        ) {
+          supabase
+            .from('work_orders')
+            .update({
+              queue_position: wo.queuePosition,
+              queue_number: wo.queueNumber,
+            })
+            .eq('id', wo.id)
+            .then(({ error }) => {
+              if (error) console.error('Queue sync error:', error.message);
+            });
+        }
+      });
+    }
     if (attendanceRes.data) setAttendance(attendanceRes.data.map(dbToAttendance));
     if (commissionsRes.data) setCommissions(commissionsRes.data.map(dbToCommission));
     if (utilityLogsRes.data) setUtilityLogs(utilityLogsRes.data.map(dbToUtilityLog));
@@ -494,32 +515,41 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, [loadAllData]);
 
 
-  const generateQueueInfo = useCallback((existingOrders: WorkOrder[]) => {
+  // Queue number = sticky sequence of arrival today (never changes for an order).
+  // Queue position is derived dynamically by normalizeQueueOrders based on active count,
+  // so a new arrival always lands at the correct rank regardless of completed jobs.
+  const generateQueueNumber = useCallback((existingOrders: WorkOrder[]) => {
     const queueDate = todayISO();
-    const todaysOrders = existingOrders.filter((wo) => getQueueDate(wo) === queueDate);
-    const nextNumber = todaysOrders.length + 1;
-
-    return {
-      queueNumber: `A-${String(nextNumber).padStart(3, '0')}`,
-      queuePosition: nextNumber,
-      queueDate,
-    };
+    const todaysCount = existingOrders.filter((wo) => getQueueDate(wo) === queueDate).length;
+    return `A-${String(todaysCount + 1).padStart(3, '0')}`;
   }, []);
 
   const addWorkOrder = useCallback((wo: Omit<WorkOrder, 'id' | 'createdAt'>): WorkOrder => {
-    const newWO: WorkOrder = {
+    const id = genId('WO');
+    const createdAt = new Date().toISOString();
+    const queueDate = todayISO();
+    const queueNumber = generateQueueNumber(workOrders);
+
+    const provisional: WorkOrder = {
       ...wo,
-      ...generateQueueInfo(workOrders),
-      id: genId('WO'),
-      createdAt: new Date().toISOString(),
+      queueNumber,
+      queuePosition: 0, // overwritten by normalizeQueueOrders below
+      queueDate,
+      id,
+      createdAt,
     };
 
-    setWorkOrders((prev) => normalizeQueueOrders([newWO, ...prev]));
+    // Compute normalized list eagerly so the DB insert carries the
+    // correct queuePosition (1 if first active, otherwise rank among actives).
+    const normalizedList = normalizeQueueOrders([provisional, ...workOrders]);
+    const newWO = normalizedList.find((w) => w.id === id)!;
+
+    setWorkOrders(normalizedList);
     supabase.from('work_orders').insert(workOrderToDb(newWO)).then(({ error }) => {
       if (error) console.error('Add work order error:', error.message);
     });
     return newWO;
-  }, [generateQueueInfo, workOrders]);
+  }, [generateQueueNumber, workOrders]);
 
   const updateWorkOrder = useCallback((id: string, updates: Partial<WorkOrder>) => {
     setWorkOrders((prev) => {
