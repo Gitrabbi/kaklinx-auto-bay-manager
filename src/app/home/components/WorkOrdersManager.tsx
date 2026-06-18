@@ -11,6 +11,8 @@ import {
   TruckIcon,
   EyeIcon,
   MagnifyingGlassIcon,
+  ClockIcon,
+  QrCodeIcon,
 } from '@heroicons/react/24/outline';
 import QRCode from 'react-qr-code';
 import { supabase } from '@/lib/supabaseClient';
@@ -88,6 +90,7 @@ export default function WorkOrdersManager() {
   const [extendCategory, setExtendCategory] = useState<'operational' | 'worker_inability' | 'customer_extra_requests'>('operational');
   const [extendReason, setExtendReason] = useState('');
   const [closedCertifiedOrderIds, setClosedCertifiedOrderIds] = useState<string[]>([]);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const getClosureStatus = (wo: any) => {
     if (closedCertifiedOrderIds.includes(wo.id)) return 'closed';
@@ -596,38 +599,159 @@ export default function WorkOrdersManager() {
       </div>
 
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end lg:hidden">
-          <div className="bg-white rounded-t-[32px] w-full p-6 space-y-3 shadow-2xl border-t border-slate-200">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-lg">{selectedOrder.plate}</h3>
-              <button onClick={() => setSelectedOrder(null)}><XMarkIcon className="w-5 h-5" /></button>
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-end lg:hidden"
+          onClick={() => { setSelectedOrder(null); setActionLoading(null); }}
+        >
+          <div
+            className="bg-white rounded-t-3xl w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1" aria-hidden="true">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
             </div>
-            <button className="w-full py-3 rounded-lg border" onClick={() => { setViewOrder(selectedOrder); setSelectedOrder(null); }}>View Details</button>
-            {shouldShowCertificationQr(selectedOrder) && (
-              <button
-                className="w-full py-3 rounded-lg bg-blue-600 text-white"
-                onClick={() => {
-                  setShowQrModal(selectedOrder);
-                  setSelectedOrder(null);
-                }}
-              >
-                Customer Certification QR
-              </button>
-            )}
 
-            {selectedOrder.status === 'Pending' && (
-              <button className="w-full py-3 rounded-lg bg-emerald-600 text-white" onClick={() => { startWorkOrder(selectedOrder.id); setSelectedOrder(null); }}>Start Job</button>
-            )}
-            {selectedOrder.status === 'In Progress' && (
-              <>
-              <button className="w-full py-3 rounded-lg bg-green-600 text-white" onClick={() => { completeWorkOrder(selectedOrder.id); setSelectedOrder(null); }}>Complete Job</button>
-              <button className="w-full py-3 rounded-lg bg-amber-500 text-white font-semibold" onClick={() => { setExtendOrder(selectedOrder); setSelectedOrder(null); }}>
-                Extend Job Time
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100">
+              <div>
+                <h3 className="font-bold text-base" style={{ color: 'hsl(215 25% 12%)' }}>
+                  {selectedOrder.plate}
+                </h3>
+                {selectedOrder.vehicleType && (
+                  <p className="text-xs mt-0.5" style={{ color: 'hsl(215 10% 48%)' }}>
+                    {selectedOrder.vehicleType}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={statusConfig[selectedOrder.status].className}>
+                  {statusConfig[selectedOrder.status].label}
+                </span>
+                <button
+                  onClick={() => { setSelectedOrder(null); setActionLoading(null); }}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                  aria-label="Close action menu"
+                >
+                  <XMarkIcon className="w-5 h-5" style={{ color: 'hsl(215 10% 48%)' }} />
+                </button>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="px-6 pt-4 pb-6 space-y-2">
+
+              {/* Primary actions */}
+              {selectedOrder.status === 'Pending' && (
+                <button
+                  className="w-full flex items-center justify-center gap-2 rounded-xl text-white text-sm font-semibold transition-opacity disabled:opacity-60"
+                  style={{ minHeight: 52, backgroundColor: 'hsl(152 60% 38%)' }}
+                  aria-label="Start this job"
+                  aria-busy={actionLoading === 'start'}
+                  disabled={actionLoading === 'start'}
+                  onClick={() => {
+                    setActionLoading('start');
+                    startWorkOrder(selectedOrder.id);
+                    setSelectedOrder(null);
+                  }}
+                >
+                  {actionLoading === 'start' ? (
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" aria-hidden="true" />
+                  ) : (
+                    <PlayIcon className="w-4 h-4" aria-hidden="true" />
+                  )}
+                  Start Job
+                </button>
+              )}
+
+              {selectedOrder.status === 'In Progress' && (
+                <>
+                  <button
+                    className="w-full flex items-center justify-center gap-2 rounded-xl text-white text-sm font-semibold transition-opacity disabled:opacity-60"
+                    style={{ minHeight: 52, backgroundColor: 'hsl(152 60% 38%)' }}
+                    aria-label="Complete this job"
+                    aria-busy={actionLoading === 'complete'}
+                    disabled={actionLoading === 'complete'}
+                    onClick={() => {
+                      setActionLoading('complete');
+                      completeWorkOrder(selectedOrder.id);
+                      setSelectedOrder(null);
+                    }}
+                  >
+                    {actionLoading === 'complete' ? (
+                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" aria-hidden="true" />
+                    ) : (
+                      <CheckIcon className="w-4 h-4" aria-hidden="true" />
+                    )}
+                    Complete Job
+                  </button>
+
+                  <button
+                    className="w-full flex items-center justify-center gap-2 rounded-xl text-white text-sm font-semibold transition-colors hover:opacity-90"
+                    style={{ minHeight: 44, backgroundColor: 'hsl(38 92% 50%)' }}
+                    aria-label="Extend job time"
+                    onClick={() => { setExtendOrder(selectedOrder); setSelectedOrder(null); }}
+                  >
+                    <ClockIcon className="w-4 h-4" aria-hidden="true" />
+                    Extend Job Time
+                  </button>
+                </>
+              )}
+
+              {/* Divider before secondary actions */}
+              {(selectedOrder.status === 'Pending' || selectedOrder.status === 'In Progress') && (
+                <div className="h-px my-1" style={{ backgroundColor: 'hsl(210 18% 89%)' }} />
+              )}
+
+              {/* Secondary actions */}
+              <div role="group" aria-label="Order actions" className="space-y-2">
+                {shouldShowCertificationQr(selectedOrder) && (
+                  <button
+                    className="w-full flex items-center justify-center gap-2 rounded-xl text-white text-sm font-semibold transition-colors hover:opacity-90"
+                    style={{ minHeight: 44, backgroundColor: 'hsl(205 78% 42%)' }}
+                    aria-label="Show customer certification QR code"
+                    onClick={() => { setShowQrModal(selectedOrder); setSelectedOrder(null); }}
+                  >
+                    <QrCodeIcon className="w-4 h-4" aria-hidden="true" />
+                    Customer Certification QR
+                  </button>
+                )}
+
+                <button
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border text-sm font-medium transition-colors hover:bg-slate-50"
+                  style={{ minHeight: 44, borderColor: 'hsl(210 18% 89%)', color: 'hsl(215 25% 12%)' }}
+                  aria-label="View order details"
+                  onClick={() => { setViewOrder(selectedOrder); setSelectedOrder(null); }}
+                >
+                  <EyeIcon className="w-4 h-4" style={{ color: 'hsl(215 10% 48%)' }} aria-hidden="true" />
+                  View Details
+                </button>
+
+                <button
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border text-sm font-medium transition-colors hover:bg-slate-50"
+                  style={{ minHeight: 44, borderColor: 'hsl(210 18% 89%)', color: 'hsl(215 25% 12%)' }}
+                  aria-label="Edit this order"
+                  onClick={() => { openEdit(selectedOrder); setSelectedOrder(null); }}
+                >
+                  <PencilSquareIcon className="w-4 h-4" style={{ color: 'hsl(205 78% 42%)' }} aria-hidden="true" />
+                  Edit Order
+                </button>
+              </div>
+
+              {/* Divider before destructive action */}
+              <div className="h-px my-1" style={{ backgroundColor: 'hsl(210 18% 89%)' }} />
+
+              {/* Destructive action */}
+              <button
+                className="w-full flex items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition-colors hover:bg-red-100"
+                style={{ minHeight: 44, borderColor: 'hsl(0 84% 90%)', backgroundColor: 'hsl(0 86% 97%)', color: 'hsl(0 72% 51%)' }}
+                aria-label="Delete this order"
+                onClick={() => { setConfirmDelete(selectedOrder.id); setSelectedOrder(null); }}
+              >
+                <TrashIcon className="w-4 h-4" aria-hidden="true" />
+                Delete Order
               </button>
-              </>
-            )}
-            <button className="w-full py-3 rounded-lg border" onClick={() => { openEdit(selectedOrder); setSelectedOrder(null); }}>Edit Order</button>
-            <button className="w-full py-3 rounded-lg bg-red-500 text-white" onClick={() => { setConfirmDelete(selectedOrder.id); setSelectedOrder(null); }}>Delete Order</button>
+            </div>
           </div>
         </div>
       )}
