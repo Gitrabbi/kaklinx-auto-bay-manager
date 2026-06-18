@@ -7,10 +7,13 @@ import {
   TruckIcon,
   CheckCircleIcon,
   PlayCircleIcon,
+  TrashIcon,
+  MagnifyingGlassIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 
 export default function QueueManager() {
-  const { workOrders, workers } = useAppData();
+  const { workOrders, workers, deleteWorkOrder } = useAppData();
 
   const pendingOrders = [...workOrders]
     .filter((wo) => wo.status === 'Pending')
@@ -20,11 +23,11 @@ export default function QueueManager() {
     (wo) => wo.status === 'In Progress'
   );
 
-  const completedToday = workOrders.filter(
-    (wo) =>
-      wo.status === 'Completed' &&
-      wo.completedAt?.startsWith(new Date().toISOString().split('T')[0])
-  );
+  const completedOrdersAll = workOrders.filter((wo) => wo.status === 'Completed');
+
+  const completedTodayCount = completedOrdersAll.filter(
+    (wo) => wo.completedAt?.startsWith(new Date().toISOString().split('T')[0])
+  ).length;
 
   const averageWait =
     pendingOrders.length > 0
@@ -35,6 +38,98 @@ export default function QueueManager() {
           ) / pendingOrders.length
         )
       : 0;
+
+  // Filters state for Recently Completed
+  const [startDate, setStartDate] = React.useState('');
+  const [endDate, setEndDate] = React.useState('');
+  const [vehicleTypeFilter, setVehicleTypeFilter] = React.useState('');
+  const [todayOnly, setTodayOnly] = React.useState(false);
+  const [searchText, setSearchText] = React.useState('');
+
+  // Deletion modal state
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false);
+  const [deleteLoading, setDeleteLoading] = React.useState(false);
+  const deleteThresholdDays = 30; // default threshold
+  const [deleteCount, setDeleteCount] = React.useState(0);
+
+  const vehicleTypes = React.useMemo(() => {
+    return Array.from(new Set(workOrders.map((w: any) => w.vehicleType).filter(Boolean)));
+  }, [workOrders]);
+
+  const formatDate = (iso: string | undefined) => {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString();
+    } catch (e) {
+      return iso;
+    }
+  };
+
+  const applyCompletedFilters = React.useCallback(() => {
+    const todayPrefix = new Date().toISOString().split('T')[0];
+
+    return completedOrdersAll
+      .filter((wo) => {
+        if (!wo.completedAt) return false;
+        // Today quick filter
+        if (todayOnly) {
+          return wo.completedAt.startsWith(todayPrefix);
+        }
+
+        // Date range filter
+        if (startDate) {
+          const st = new Date(startDate).setHours(0, 0, 0, 0);
+          const completed = new Date(wo.completedAt).getTime();
+          if (completed < st) return false;
+        }
+        if (endDate) {
+          const ed = new Date(endDate).setHours(23, 59, 59, 999);
+          const completed = new Date(wo.completedAt).getTime();
+          if (completed > ed) return false;
+        }
+
+        // Vehicle type
+        if (vehicleTypeFilter && wo.vehicleType !== vehicleTypeFilter) return false;
+
+        // Search text (plate or queue number)
+        if (searchText) {
+          const q = searchText.toLowerCase();
+          const plate = (wo.plate || '').toLowerCase();
+          const qnum = String(wo.queueNumber || '').toLowerCase();
+          if (!plate.includes(q) && !qnum.includes(q)) return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
+  }, [completedOrdersAll, todayOnly, startDate, endDate, vehicleTypeFilter, searchText]);
+
+  const filteredCompleted = applyCompletedFilters();
+
+  const prepareDeleteOld = () => {
+    const threshold = Date.now() - deleteThresholdDays * 24 * 60 * 60 * 1000;
+    const old = completedOrdersAll.filter((wo) => {
+      if (!wo.completedAt) return false;
+      return new Date(wo.completedAt).getTime() < threshold;
+    });
+    setDeleteCount(old.length);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteOld = async () => {
+    setDeleteLoading(true);
+    try {
+      const threshold = Date.now() - deleteThresholdDays * 24 * 60 * 60 * 1000;
+      const old = completedOrdersAll.filter((wo) => wo.completedAt && new Date(wo.completedAt).getTime() < threshold);
+      await Promise.all(
+        old.map((o) => deleteWorkOrder?.(o.id).catch(() => null))
+      );
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteModal(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -73,7 +168,7 @@ export default function QueueManager() {
                 Completed Today
               </p>
               <h2 className="text-3xl font-bold">
-                {completedToday.length}
+                {completedTodayCount}
               </h2>
             </div>
             <CheckCircleIcon className="w-10 h-10 opacity-80" />
@@ -269,6 +364,112 @@ export default function QueueManager() {
 
         </div>
       </div>
+
+      {/* Recently Completed with filters */}
+      <div className="bg-white rounded-3xl border shadow-lg overflow-hidden">
+        <div className="bg-gradient-to-r from-slate-700 to-slate-900 text-white px-6 py-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold">✅ Recently Completed</h2>
+
+          <div className="flex items-center gap-3">
+            <button
+              title="Show today"
+              onClick={() => {
+                setTodayOnly(true);
+                setStartDate('');
+                setEndDate('');
+              }}
+              className={`px-3 py-2 rounded-lg text-sm font-medium border ${todayOnly ? 'bg-blue-600 text-white' : 'bg-white/10 text-white'}`}
+            >
+              Today
+            </button>
+
+            <button
+              title="Delete completed older than 30 days"
+              onClick={prepareDeleteOld}
+              className="px-3 py-2 rounded-lg text-sm font-medium border text-red-600 bg-white/10"
+            >
+              <TrashIcon className="w-4 h-4 inline-block mr-2" />
+              Delete Old
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* Filters */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex items-center gap-2 flex-1">
+              <MagnifyingGlassIcon className="w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search plate or queue number"
+                value={searchText}
+                onChange={(e) => { setSearchText(e.target.value); setTodayOnly(false); }}
+                className="flex-1 px-3 py-2 rounded-lg border text-sm outline-none"
+                style={{ borderColor: 'hsl(210 18% 89%)' }}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
+                <CalendarDaysIcon className="w-5 h-5 text-slate-400" />
+                <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setTodayOnly(false); }} className="px-3 py-2 rounded-lg border text-sm" style={{ borderColor: 'hsl(210 18% 89%)' }} />
+                <span className="text-sm">to</span>
+                <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setTodayOnly(false); }} className="px-3 py-2 rounded-lg border text-sm" style={{ borderColor: 'hsl(210 18% 89%)' }} />
+              </div>
+
+              <select value={vehicleTypeFilter} onChange={(e) => setVehicleTypeFilter(e.target.value)} className="px-3 py-2 rounded-lg border text-sm" style={{ borderColor: 'hsl(210 18% 89%)' }}>
+                <option value="">All types</option>
+                {vehicleTypes.map((vt) => (
+                  <option key={vt} value={vt}>{vt}</option>
+                ))}
+              </select>
+
+              <button onClick={() => { setStartDate(''); setEndDate(''); setVehicleTypeFilter(''); setSearchText(''); setTodayOnly(false); }} className="px-3 py-2 rounded-lg border text-sm" style={{ borderColor: 'hsl(210 18% 89%)' }}>Clear</button>
+            </div>
+          </div>
+
+          {/* List */}
+          {filteredCompleted.length === 0 ? (
+            <p className="text-slate-500">No completed orders match the selected filters.</p>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-4">
+              {filteredCompleted.map((order) => (
+                <div key={order.id} className="border rounded-2xl p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-lg">{order.queueNumber} — {order.plate}</h3>
+                      <p className="text-sm text-slate-500">{order.vehicleType} • {formatDate(order.completedAt)}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button title="Delete" onClick={() => { setDeleteCount(1); setShowDeleteModal(true); }} className="p-2 rounded-lg hover:bg-red-50 text-red-600">
+                        <TrashIcon className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Delete confirmation modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <h3 className="font-bold text-lg">Delete completed orders</h3>
+            <p className="text-sm text-slate-600 mt-2">This will permanently delete {deleteCount} completed order(s) older than {deleteThresholdDays} days. This action cannot be undone.</p>
+
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-2.5 rounded-lg border text-sm font-medium" style={{ borderColor: 'hsl(210 18% 89%)' }}>Cancel</button>
+              <button onClick={confirmDeleteOld} disabled={deleteLoading} className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: 'hsl(0 71% 50%)' }}>
+                {deleteLoading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
