@@ -63,6 +63,13 @@ const emptyForm: FormState = {
   discount: '',
 };
 
+// Mobile action-sheet button className fragments
+const sheetBtnBase = 'flex items-center justify-center transition-all duration-150';
+const sheetBtnPrimary = `w-full py-4 rounded-2xl font-bold text-base gap-2.5 shadow-md ${sheetBtnBase}`;
+const sheetBtnSoft = `w-full py-3.5 rounded-2xl font-semibold text-sm gap-2 border ${sheetBtnBase}`;
+const sheetBtnGrid = `py-3 rounded-xl font-semibold text-sm gap-1.5 border ${sheetBtnBase}`;
+const sheetBtnDestructive = `w-full py-3 rounded-xl font-semibold text-sm gap-2 border ${sheetBtnBase}`;
+
 export default function WorkOrdersManager() {
   const {
     workOrders,
@@ -597,128 +604,120 @@ export default function WorkOrdersManager() {
         )}
       </div>
 
-      {selectedOrder && (() => {
-        // Shared className fragments for the mobile action sheet buttons
-        const btnBase = 'flex items-center justify-center transition-all duration-150';
-        const btnPrimary = `w-full py-4 rounded-2xl font-bold text-base gap-2.5 shadow-md ${btnBase}`;
-        const btnSoft = `w-full py-3.5 rounded-2xl font-semibold text-sm gap-2 border ${btnBase}`;
-        const btnGrid = `py-3 rounded-xl font-semibold text-sm gap-1.5 border ${btnBase}`;
-        const btnDestructive = `w-full py-3 rounded-xl font-semibold text-sm gap-2 border ${btnBase}`;
-        return (
+      {selectedOrder && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-end lg:hidden"
+          onClick={() => setSelectedOrder(null)}
+        >
           <div
-            className="fixed inset-0 z-50 bg-black/60 flex items-end lg:hidden"
-            onClick={() => setSelectedOrder(null)}
+            className="bg-white rounded-t-3xl w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="bg-white rounded-t-3xl w-full shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Drag handle */}
-              <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 rounded-full bg-slate-200" />
-              </div>
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-slate-200" />
+            </div>
 
-              {/* Header */}
-              <div className="px-6 pt-3 pb-4 border-b border-slate-100">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-xl text-slate-900 truncate">{selectedOrder.plate}</h3>
-                    <p className="text-sm text-slate-500 mt-0.5 truncate">
-                      {selectedOrder.vehicleType}
-                      {selectedOrder.services && selectedOrder.services.length > 0 && ` · ${selectedOrder.services[0]}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      selectedOrder.status === 'Pending'     ? 'bg-amber-100 text-amber-700' :
-                      selectedOrder.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                      selectedOrder.status === 'Completed'   ? 'bg-emerald-100 text-emerald-700' :
-                      'bg-slate-100 text-slate-500'
-                    }`}>
-                      {selectedOrder.status}
-                    </span>
-                    <button
-                      onClick={() => setSelectedOrder(null)}
-                      className="p-1.5 rounded-full hover:bg-slate-100 active:bg-slate-200 transition-colors"
-                    >
-                      <XMarkIcon className="w-5 h-5 text-slate-500" />
-                    </button>
-                  </div>
+            {/* Header */}
+            <div className="px-6 pt-3 pb-4 border-b border-slate-100">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-xl text-slate-900 truncate">{selectedOrder.plate}</h3>
+                  <p className="text-sm text-slate-500 mt-0.5 truncate">
+                    {selectedOrder.vehicleType}
+                    {selectedOrder.services && selectedOrder.services.length > 0 && ` · ${selectedOrder.services[0]}`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                    selectedOrder.status === 'Pending'     ? 'bg-amber-100 text-amber-700' :
+                    selectedOrder.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
+                    selectedOrder.status === 'Completed'   ? 'bg-emerald-100 text-emerald-700' :
+                    'bg-slate-100 text-slate-500'
+                  }`}>
+                    {selectedOrder.status}
+                  </span>
+                  <button
+                    onClick={() => setSelectedOrder(null)}
+                    className="p-1.5 rounded-full hover:bg-slate-100 active:bg-slate-200 transition-colors"
+                  >
+                    <XMarkIcon className="w-5 h-5 text-slate-500" />
+                  </button>
                 </div>
               </div>
+            </div>
 
-              {/* Primary actions */}
-              <div className="px-6 pt-5 pb-3 space-y-3">
-                {selectedOrder.status === 'Pending' && (
+            {/* Primary actions */}
+            <div className="px-6 pt-5 pb-3 space-y-3">
+              {selectedOrder.status === 'Pending' && (
+                <button
+                  className={`${sheetBtnPrimary} bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white shadow-emerald-100`}
+                  onClick={() => { startWorkOrder(selectedOrder.id); setSelectedOrder(null); }}
+                >
+                  <PlayIcon className="w-5 h-5" />
+                  Start Job
+                </button>
+              )}
+              {selectedOrder.status === 'In Progress' && (
+                <>
                   <button
-                    className={`${btnPrimary} bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white shadow-emerald-100`}
-                    onClick={() => { startWorkOrder(selectedOrder.id); setSelectedOrder(null); }}
+                    className={`${sheetBtnPrimary} bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-blue-100`}
+                    onClick={() => { completeWorkOrder(selectedOrder.id); setSelectedOrder(null); }}
                   >
-                    <PlayIcon className="w-5 h-5" />
-                    Start Job
+                    <CheckIcon className="w-5 h-5" />
+                    Complete Job
                   </button>
-                )}
-                {selectedOrder.status === 'In Progress' && (
-                  <>
-                    <button
-                      className={`${btnPrimary} bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-blue-100`}
-                      onClick={() => { completeWorkOrder(selectedOrder.id); setSelectedOrder(null); }}
-                    >
-                      <CheckIcon className="w-5 h-5" />
-                      Complete Job
-                    </button>
-                    <button
-                      className={`${btnSoft} bg-amber-50 hover:bg-amber-100 active:bg-amber-200 text-amber-700 border-amber-200`}
-                      onClick={() => { setExtendOrder(selectedOrder); setSelectedOrder(null); }}
-                    >
-                      <ClockIcon className="w-4 h-4" />
-                      Extend Job Time
-                    </button>
-                  </>
-                )}
-                {shouldShowCertificationQr(selectedOrder) && (
                   <button
-                    className={`${btnSoft} bg-slate-700 hover:bg-slate-800 active:bg-slate-900 text-white border-transparent`}
-                    onClick={() => { setShowQrModal(selectedOrder); setSelectedOrder(null); }}
+                    className={`${sheetBtnSoft} bg-amber-50 hover:bg-amber-100 active:bg-amber-200 text-amber-700 border-amber-200`}
+                    onClick={() => { setExtendOrder(selectedOrder); setSelectedOrder(null); }}
                   >
-                    <QrCodeIcon className="w-4 h-4" />
-                    Customer Certification QR
+                    <ClockIcon className="w-4 h-4" />
+                    Extend Job Time
                   </button>
-                )}
-              </div>
+                </>
+              )}
+              {shouldShowCertificationQr(selectedOrder) && (
+                <button
+                  className={`${sheetBtnSoft} bg-slate-700 hover:bg-slate-800 active:bg-slate-900 text-white border-transparent`}
+                  onClick={() => { setShowQrModal(selectedOrder); setSelectedOrder(null); }}
+                >
+                  <QrCodeIcon className="w-4 h-4" />
+                  Customer Certification QR
+                </button>
+              )}
+            </div>
 
-              {/* Secondary actions */}
-              <div className="px-6 pb-3 grid grid-cols-2 gap-3">
-                <button
-                  className={`${btnGrid} bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 border-slate-200`}
-                  onClick={() => { setViewOrder(selectedOrder); setSelectedOrder(null); }}
-                >
-                  <EyeIcon className="w-4 h-4" />
-                  View Details
-                </button>
-                <button
-                  className={`${btnGrid} bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 border-slate-200`}
-                  onClick={() => { openEdit(selectedOrder); setSelectedOrder(null); }}
-                >
-                  <PencilSquareIcon className="w-4 h-4" />
-                  Edit Order
-                </button>
-              </div>
+            {/* Secondary actions */}
+            <div className="px-6 pb-3 grid grid-cols-2 gap-3">
+              <button
+                className={`${sheetBtnGrid} bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 border-slate-200`}
+                onClick={() => { setViewOrder(selectedOrder); setSelectedOrder(null); }}
+              >
+                <EyeIcon className="w-4 h-4" />
+                View Details
+              </button>
+              <button
+                className={`${sheetBtnGrid} bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 border-slate-200`}
+                onClick={() => { openEdit(selectedOrder); setSelectedOrder(null); }}
+              >
+                <PencilSquareIcon className="w-4 h-4" />
+                Edit Order
+              </button>
+            </div>
 
-              {/* Destructive action */}
-              <div className="px-6 pb-8 pt-1">
-                <button
-                  className={`${btnDestructive} bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-600 border-red-100`}
-                  onClick={() => { setConfirmDelete(selectedOrder.id); setSelectedOrder(null); }}
-                >
-                  <TrashIcon className="w-4 h-4" />
-                  Delete Order
-                </button>
-              </div>
+            {/* Destructive action */}
+            <div className="px-6 pb-8 pt-1">
+              <button
+                className={`${sheetBtnDestructive} bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-600 border-red-100`}
+                onClick={() => { setConfirmDelete(selectedOrder.id); setSelectedOrder(null); }}
+              >
+                <TrashIcon className="w-4 h-4" />
+                Delete Order
+              </button>
             </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       {showForm && (
         <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto">
