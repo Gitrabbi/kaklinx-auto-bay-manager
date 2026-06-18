@@ -39,6 +39,22 @@ const PREMIUM_COMPONENTS = [
   'Interior + Vacuuming',
 ];
 
+// Action sheet color tokens (inline hsl values matching codebase design system)
+const CLR_PRIMARY = 'hsl(205 78% 42%)';
+const CLR_PRIMARY_HOVER = 'hsl(205 78% 55%)';
+const CLR_PRIMARY_BG = 'hsl(205 78% 97%)';
+const CLR_DESTRUCTIVE = 'hsl(0 71% 50%)';
+const CLR_DESTRUCTIVE_BORDER = 'hsl(0 71% 75%)';
+const CLR_DESTRUCTIVE_BG = 'hsl(0 71% 97%)';
+const CLR_SECONDARY_BORDER = 'hsl(210 18% 80%)';
+const CLR_SECONDARY_TEXT = 'hsl(215 25% 25%)';
+
+// Shared className fragments for action sheet buttons
+const PRIMARY_BTN_CLS =
+  'w-full rounded-lg text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60';
+const SECONDARY_BTN_CLS =
+  'rounded-lg border font-medium text-sm flex items-center justify-center gap-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
+
 interface FormState {
   plate: string;
   vehicleType: string;
@@ -98,7 +114,7 @@ export default function WorkOrdersManager() {
   useEffect(() => {
     if (selectedOrder) {
       sheetTriggerRef.current = document.activeElement as HTMLElement;
-      setTimeout(() => sheetRef.current?.focus(), 50);
+      requestAnimationFrame(() => sheetRef.current?.focus());
     } else {
       sheetTriggerRef.current?.focus();
       sheetTriggerRef.current = null;
@@ -624,8 +640,8 @@ export default function WorkOrdersManager() {
             {/* Header */}
             <div className="px-6 py-3 border-b border-slate-200 flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs font-medium" style={{ color: 'hsl(215 10% 48%)' }}>{selectedOrder.vehicleType}</p>
                 <h3 id="action-sheet-title" className="text-lg font-bold" style={{ color: 'hsl(215 25% 12%)' }}>{selectedOrder.plate}</h3>
+                <p className="text-xs font-medium mt-0.5" style={{ color: 'hsl(215 10% 48%)' }}>{selectedOrder.vehicleType}</p>
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -657,8 +673,8 @@ export default function WorkOrdersManager() {
                   disabled={actionLoading === 'start'}
                   aria-label={actionLoading === 'start' ? 'Starting job, please wait' : 'Start job'}
                   aria-busy={actionLoading === 'start'}
-                  className="w-full rounded-lg text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
-                  style={{ height: '52px', backgroundColor: actionLoading === 'start' ? 'hsl(205 78% 55%)' : 'hsl(205 78% 42%)' }}
+                  className={PRIMARY_BTN_CLS}
+                  style={{ height: '52px', backgroundColor: actionLoading === 'start' ? CLR_PRIMARY_HOVER : CLR_PRIMARY }}
                 >
                   {actionLoading === 'start' ? (
                     <>
@@ -688,8 +704,8 @@ export default function WorkOrdersManager() {
                     disabled={actionLoading === 'complete'}
                     aria-label={actionLoading === 'complete' ? 'Completing job, please wait' : 'Complete job'}
                     aria-busy={actionLoading === 'complete'}
-                    className="w-full rounded-lg text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
-                    style={{ height: '52px', backgroundColor: actionLoading === 'complete' ? 'hsl(205 78% 55%)' : 'hsl(205 78% 42%)' }}
+                    className={PRIMARY_BTN_CLS}
+                    style={{ height: '52px', backgroundColor: actionLoading === 'complete' ? CLR_PRIMARY_HOVER : CLR_PRIMARY }}
                   >
                     {actionLoading === 'complete' ? (
                       <>
@@ -707,8 +723,8 @@ export default function WorkOrdersManager() {
                   <button
                     onClick={() => { setExtendOrder(selectedOrder); setSelectedOrder(null); }}
                     aria-label="Extend job time"
-                    className="w-full rounded-lg border font-semibold text-sm flex items-center justify-center gap-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                    style={{ height: '52px', borderColor: 'hsl(205 78% 42%)', color: 'hsl(205 78% 42%)', backgroundColor: 'hsl(205 78% 97%)' }}
+                    className={`w-full ${SECONDARY_BTN_CLS} font-semibold`}
+                    style={{ height: '52px', borderColor: CLR_PRIMARY, color: CLR_PRIMARY, backgroundColor: CLR_PRIMARY_BG }}
                   >
                     <ClockIcon className="w-5 h-5" />
                     Extend Job Time
@@ -723,8 +739,8 @@ export default function WorkOrdersManager() {
                 <button
                   onClick={() => { setViewOrder(selectedOrder); setSelectedOrder(null); }}
                   aria-label="View order details"
-                  className="rounded-lg border font-medium text-sm flex items-center justify-center gap-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                  style={{ height: '44px', borderColor: 'hsl(210 18% 80%)', color: 'hsl(215 25% 25%)', backgroundColor: 'white' }}
+                  className={SECONDARY_BTN_CLS}
+                  style={{ height: '44px', borderColor: CLR_SECONDARY_BORDER, color: CLR_SECONDARY_TEXT, backgroundColor: 'white' }}
                 >
                   <EyeIcon className="w-4 h-4" />
                   View Details
@@ -734,8 +750,8 @@ export default function WorkOrdersManager() {
                   <button
                     onClick={() => { openEdit(selectedOrder); setSelectedOrder(null); }}
                     aria-label="Edit work order"
-                    className="rounded-lg border font-medium text-sm flex items-center justify-center gap-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                    style={{ height: '44px', borderColor: 'hsl(210 18% 80%)', color: 'hsl(215 25% 25%)', backgroundColor: 'white' }}
+                    className={SECONDARY_BTN_CLS}
+                    style={{ height: '44px', borderColor: CLR_SECONDARY_BORDER, color: CLR_SECONDARY_TEXT, backgroundColor: 'white' }}
                   >
                     <PencilSquareIcon className="w-4 h-4" />
                     Edit Order
@@ -747,8 +763,8 @@ export default function WorkOrdersManager() {
                 <button
                   onClick={() => { setShowQrModal(selectedOrder); setSelectedOrder(null); }}
                   aria-label="Show customer certification QR code"
-                  className="w-full rounded-lg border-2 font-medium text-sm flex items-center justify-center gap-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                  style={{ height: '44px', borderColor: 'hsl(205 78% 42%)', color: 'hsl(205 78% 42%)', backgroundColor: 'hsl(205 78% 97%)' }}
+                  className={`w-full ${SECONDARY_BTN_CLS} border-2`}
+                  style={{ height: '44px', borderColor: CLR_PRIMARY, color: CLR_PRIMARY, backgroundColor: CLR_PRIMARY_BG }}
                 >
                   <QrCodeIcon className="w-4 h-4" />
                   Customer QR
@@ -761,8 +777,8 @@ export default function WorkOrdersManager() {
               <button
                 onClick={() => { setConfirmDelete(selectedOrder.id); setSelectedOrder(null); }}
                 aria-label="Delete this work order"
-                className="w-full rounded-lg border font-semibold text-sm flex items-center justify-center gap-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                style={{ height: '44px', borderColor: 'hsl(0 71% 75%)', color: 'hsl(0 71% 50%)', backgroundColor: 'hsl(0 71% 97%)' }}
+                className={`w-full ${SECONDARY_BTN_CLS} font-semibold`}
+                style={{ height: '44px', borderColor: CLR_DESTRUCTIVE_BORDER, color: CLR_DESTRUCTIVE, backgroundColor: CLR_DESTRUCTIVE_BG }}
               >
                 <TrashIcon className="w-4 h-4" />
                 Delete Order
