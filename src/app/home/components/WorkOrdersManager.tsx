@@ -32,6 +32,7 @@ const statusConfig: Record<WorkOrderStatus, { className: string; label: string }
 };
 
 const PREMIUM_SERVICE = 'Interior Premium + Vacuuming + Body Wash';
+const WORK_ORDER_GRACE_PERIOD_SECONDS = 600; // 10-minute grace period
 
 const PREMIUM_COMPONENTS = [
   'Body Wash',
@@ -102,9 +103,12 @@ export default function WorkOrdersManager() {
   };
 
   const handlePrimarySheetAction = async (loadingState: 'start' | 'complete', action: () => void | Promise<void>) => {
+    const actionVerb = loadingState === 'start' ? 'starting' : 'completing';
     setActionLoading(loadingState);
     try {
       await Promise.resolve(action());
+    } catch (error) {
+      console.error(`Failed while ${actionVerb} work order:`, error);
     } finally {
       setActionLoading(null);
       setSelectedOrder(null);
@@ -422,6 +426,31 @@ export default function WorkOrdersManager() {
       minute: '2-digit',
     });
 
+  const selectedOrderElapsedSecs = selectedOrder ? timer[selectedOrder.id] || 0 : 0;
+  const selectedOrderTargetWithExtensionSecs = selectedOrder
+    ? ((selectedOrder.targetMinutes || 0) + (selectedOrder.extensionMinutes || 0)) * 60
+    : 0;
+  const selectedOrderOvertimeSecs = Math.max(
+    0,
+    selectedOrderElapsedSecs - (selectedOrderTargetWithExtensionSecs + WORK_ORDER_GRACE_PERIOD_SECONDS)
+  );
+  const shouldShowExtendPrimary = selectedOrder?.status === 'In Progress' && selectedOrderOvertimeSecs > 0;
+
+  const handleStartPrimaryAction = () => {
+    if (!selectedOrder) return;
+    handlePrimarySheetAction('start', () => startWorkOrder(selectedOrder.id));
+  };
+
+  const handleInProgressPrimaryAction = () => {
+    if (!selectedOrder) return;
+    if (shouldShowExtendPrimary) {
+      setExtendOrder(selectedOrder);
+      setSelectedOrder(null);
+      return;
+    }
+    handlePrimarySheetAction('complete', () => completeWorkOrder(selectedOrder.id));
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
@@ -628,7 +657,7 @@ export default function WorkOrdersManager() {
                 </span>
                 <button 
                   onClick={() => { setSelectedOrder(null); setActionLoading(null); }}
-                  className="h-11 w-11 rounded-lg flex items-center justify-center transition-colors"
+                  className="h-11 w-11 rounded-lg flex items-center justify-center transition-colors hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:ring-2 focus-visible:ring-[hsl(205_78%_42%)] focus-visible:ring-offset-2"
                   style={{ color: 'hsl(215 10% 48%)' }}
                   aria-label="Close work order actions"
                 >
@@ -641,7 +670,7 @@ export default function WorkOrdersManager() {
             <div className="px-5 py-4 border-b" style={{ borderColor: 'hsl(210 18% 89%)' }}>
               {selectedOrder.status === 'Pending' && (
                 <button
-                  onClick={() => handlePrimarySheetAction('start', () => startWorkOrder(selectedOrder.id))}
+                  onClick={handleStartPrimaryAction}
                   disabled={actionLoading === 'start'}
                   className="w-full h-[52px] rounded-xl text-white font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-60"
                   style={{ backgroundColor: 'hsl(205 78% 42%)' }}
@@ -664,26 +693,14 @@ export default function WorkOrdersManager() {
 
               {selectedOrder.status === 'In Progress' && (
                 <button
-                  onClick={() => {
-                    const elapsedSecs = timer[selectedOrder.id] || 0;
-                    const targetSecs = (selectedOrder.targetMinutes || 0) * 60;
-                    const extensionSecs = (selectedOrder.extensionMinutes || 0) * 60;
-                    const overtime = Math.max(0, elapsedSecs - (targetSecs + extensionSecs + 600));
-                    if (overtime > 0) {
-                      setExtendOrder(selectedOrder);
-                      setSelectedOrder(null);
-                      setActionLoading(null);
-                      return;
-                    }
-                    handlePrimarySheetAction('complete', () => completeWorkOrder(selectedOrder.id));
-                  }}
+                  onClick={handleInProgressPrimaryAction}
                   disabled={actionLoading === 'complete'}
                   className="w-full h-[52px] rounded-xl text-white font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-60"
                   style={{ backgroundColor: 'hsl(205 78% 42%)' }}
                   aria-busy={actionLoading === 'complete'}
-                  aria-label={(timer[selectedOrder.id] || 0) - (((selectedOrder.targetMinutes || 0) + (selectedOrder.extensionMinutes || 0)) * 60 + 600) > 0 ? 'Extend work order time' : 'Complete work order'}
+                  aria-label={shouldShowExtendPrimary ? 'Extend work order time' : 'Complete work order'}
                 >
-                  {((timer[selectedOrder.id] || 0) - (((selectedOrder.targetMinutes || 0) + (selectedOrder.extensionMinutes || 0)) * 60 + 600)) > 0 ? (
+                  {shouldShowExtendPrimary ? (
                     <>
                       <ClockIcon className="w-5 h-5" />
                       Extend Time
@@ -748,7 +765,7 @@ export default function WorkOrdersManager() {
                 className="w-full h-11 rounded-xl border border-red-300 text-red-600 font-medium text-sm flex items-center justify-center gap-2 transition-colors"
                 aria-label="Delete work order"
               >
-                <TrashIcon className="w-5 h-5" />
+                <TrashIcon className="w-5 h-5" aria-hidden="true" />
                 Delete Order
               </button>
             </div>
