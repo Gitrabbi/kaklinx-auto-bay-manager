@@ -75,22 +75,91 @@ body {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-/* Status badges */
+/* Status badges - Modern design with gradients and icons */
 .badge-completed {
-  background-color: #d1fae5;
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
   color: #065f46;
+  border: 1px solid rgba(6, 95, 70, 0.15);
+  box-shadow: 0 1px 3px rgba(6, 95, 70, 0.08);
 }
+
+.badge-completed::before {
+  content: '✓';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: rgba(6, 95, 70, 0.2);
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 10px;
+}
+
 .badge-in-progress {
-  background-color: #dbeafe;
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   color: #1e40af;
+  border: 1px solid rgba(30, 64, 175, 0.15);
+  box-shadow: 0 1px 3px rgba(30, 64, 175, 0.08);
 }
+
+.badge-in-progress::before {
+  content: '⧗';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: rgba(30, 64, 175, 0.2);
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 10px;
+  animation: slideUp 1.5s ease-in-out infinite;
+}
+
 .badge-pending {
-  background-color: #fef3c7;
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
   color: #92400e;
+  border: 1px solid rgba(146, 64, 14, 0.15);
+  box-shadow: 0 1px 3px rgba(146, 64, 14, 0.08);
 }
+
+.badge-pending::before {
+  content: '◐';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: rgba(146, 64, 14, 0.2);
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 10px;
+  animation: rotate 2s linear infinite;
+}
+
 .badge-cancelled {
-  background-color: #fee2e2;
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
   color: #991b1b;
+  border: 1px solid rgba(153, 27, 27, 0.15);
+  box-shadow: 0 1px 3px rgba(153, 27, 27, 0.08);
+}
+
+.badge-cancelled::before {
+  content: '✕';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: rgba(153, 27, 27, 0.2);
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 10px;
 }
 
 /* Fade in animation */
@@ -143,10 +212,23 @@ body {
   animation: growBar 0.6s ease forwards;
 }
 
+/* Icon animations for status badges */
+@keyframes slideUp {
+  0%, 100% { transform: translateY(2px); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fade-in,
   .stagger-children > *,
-  .bar-grow {
+  .bar-grow,
+  .badge-in-progress::before,
+  .badge-pending::before {
     animation: none;
     opacity: 1;
     transform: none;
