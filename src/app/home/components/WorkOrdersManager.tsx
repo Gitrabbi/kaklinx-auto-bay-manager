@@ -1,6 +1,6 @@
 'use client';
 import WorkerRecommendationPanel from './WorkerRecommendationPanel';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   PlusIcon,
   PencilSquareIcon,
@@ -91,6 +91,19 @@ export default function WorkOrdersManager() {
   const [extendReason, setExtendReason] = useState('');
   const [closedCertifiedOrderIds, setClosedCertifiedOrderIds] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const sheetTriggerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (selectedOrder) {
+      sheetTriggerRef.current = document.activeElement as HTMLElement;
+      setTimeout(() => sheetRef.current?.focus(), 50);
+    } else {
+      sheetTriggerRef.current?.focus();
+      sheetTriggerRef.current = null;
+    }
+  }, [selectedOrder]);
 
   const getClosureStatus = (wo: any) => {
     if (closedCertifiedOrderIds.includes(wo.id)) return 'closed';
@@ -590,9 +603,17 @@ export default function WorkOrdersManager() {
       </div>
 
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end lg:hidden" onClick={() => { setSelectedOrder(null); setActionLoading(null); }}>
-          <div 
-            className="bg-white w-full shadow-2xl border-t border-slate-200 animate-in slide-in-from-bottom-5 duration-300"
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-end lg:hidden"
+          onClick={() => { setSelectedOrder(null); setActionLoading(null); }}
+        >
+          <div
+            ref={sheetRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="action-sheet-title"
+            tabIndex={-1}
+            className="bg-white w-full shadow-2xl border-t border-slate-200 animate-in slide-in-from-bottom-5 duration-300 outline-none"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag Handle */}
@@ -603,26 +624,25 @@ export default function WorkOrdersManager() {
             {/* Header */}
             <div className="px-6 py-3 border-b border-slate-200 flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs text-slate-500 font-medium">Vehicle</p>
-                <h3 className="text-lg font-bold text-slate-900">{selectedOrder.plate}</h3>
-                <p className="text-xs text-slate-600 mt-0.5">{selectedOrder.vehicleType}</p>
+                <p className="text-xs font-medium" style={{ color: 'hsl(215 10% 48%)' }}>{selectedOrder.vehicleType}</p>
+                <h3 id="action-sheet-title" className="text-lg font-bold" style={{ color: 'hsl(215 25% 12%)' }}>{selectedOrder.plate}</h3>
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${statusConfig[selectedOrder.status].className}`}>
                   {selectedOrder.status}
                 </span>
-                <button 
+                <button
                   onClick={() => { setSelectedOrder(null); setActionLoading(null); }}
-                  className="p-1 rounded-lg hover:bg-slate-100 transition-colors"
-                  aria-label="Close"
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                  aria-label="Close action sheet"
                 >
                   <XMarkIcon className="w-5 h-5 text-slate-500" />
                 </button>
               </div>
             </div>
 
-            {/* Primary Action */}
+            {/* Primary Actions */}
             <div className="px-6 py-4 space-y-2 border-b border-slate-200">
               {selectedOrder.status === 'Pending' && (
                 <button
@@ -635,13 +655,15 @@ export default function WorkOrdersManager() {
                     }, 300);
                   }}
                   disabled={actionLoading === 'start'}
-                  className="w-full h-12 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-semibold flex items-center justify-center gap-2 transition-all"
+                  aria-label={actionLoading === 'start' ? 'Starting job, please wait' : 'Start job'}
                   aria-busy={actionLoading === 'start'}
+                  className="w-full rounded-lg text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
+                  style={{ height: '52px', backgroundColor: actionLoading === 'start' ? 'hsl(205 78% 55%)' : 'hsl(205 78% 42%)' }}
                 >
                   {actionLoading === 'start' ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Starting...
+                      Starting…
                     </>
                   ) : (
                     <>
@@ -653,77 +675,96 @@ export default function WorkOrdersManager() {
               )}
 
               {selectedOrder.status === 'In Progress' && (
-                <button
-                  onClick={() => {
-                    setActionLoading('complete');
-                    completeWorkOrder(selectedOrder.id);
-                    setTimeout(() => {
-                      setSelectedOrder(null);
-                      setActionLoading(null);
-                    }, 300);
-                  }}
-                  disabled={actionLoading === 'complete'}
-                  className="w-full h-12 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-semibold flex items-center justify-center gap-2 transition-all"
-                  aria-busy={actionLoading === 'complete'}
-                >
-                  {actionLoading === 'complete' ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Completing...
-                    </>
-                  ) : (
-                    <>
-                      <CheckIcon className="w-5 h-5" />
-                      Complete Job
-                    </>
-                  )}
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      setActionLoading('complete');
+                      completeWorkOrder(selectedOrder.id);
+                      setTimeout(() => {
+                        setSelectedOrder(null);
+                        setActionLoading(null);
+                      }, 300);
+                    }}
+                    disabled={actionLoading === 'complete'}
+                    aria-label={actionLoading === 'complete' ? 'Completing job, please wait' : 'Complete job'}
+                    aria-busy={actionLoading === 'complete'}
+                    className="w-full rounded-lg text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
+                    style={{ height: '52px', backgroundColor: actionLoading === 'complete' ? 'hsl(205 78% 55%)' : 'hsl(205 78% 42%)' }}
+                  >
+                    {actionLoading === 'complete' ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Completing…
+                      </>
+                    ) : (
+                      <>
+                        <CheckIcon className="w-5 h-5" />
+                        Complete Job
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => { setExtendOrder(selectedOrder); setSelectedOrder(null); }}
+                    aria-label="Extend job time"
+                    className="w-full rounded-lg border font-semibold text-sm flex items-center justify-center gap-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                    style={{ height: '52px', borderColor: 'hsl(205 78% 42%)', color: 'hsl(205 78% 42%)', backgroundColor: 'hsl(205 78% 97%)' }}
+                  >
+                    <ClockIcon className="w-5 h-5" />
+                    Extend Job Time
+                  </button>
+                </>
               )}
             </div>
 
             {/* Secondary Actions */}
-            <div className="px-6 py-4 space-y-2 border-b border-slate-200" role="group">
+            <div className="px-6 py-4 space-y-2 border-b border-slate-200" role="group" aria-label="Order actions">
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => { setViewOrder(selectedOrder); setSelectedOrder(null); }}
-                  className="h-10 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm flex items-center justify-center gap-2 transition-colors"
-                  title="View full details"
+                  aria-label="View order details"
+                  className="rounded-lg border font-medium text-sm flex items-center justify-center gap-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                  style={{ height: '44px', borderColor: 'hsl(210 18% 80%)', color: 'hsl(215 25% 25%)', backgroundColor: 'white' }}
                 >
                   <EyeIcon className="w-4 h-4" />
-                  Details
+                  View Details
                 </button>
 
-                {selectedOrder.status === 'Pending' || selectedOrder.status === 'In Progress' ? (
+                {(selectedOrder.status === 'Pending' || selectedOrder.status === 'In Progress') && (
                   <button
                     onClick={() => { openEdit(selectedOrder); setSelectedOrder(null); }}
-                    className="h-10 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm flex items-center justify-center gap-2 transition-colors"
-                    title="Edit work order"
+                    aria-label="Edit work order"
+                    className="rounded-lg border font-medium text-sm flex items-center justify-center gap-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                    style={{ height: '44px', borderColor: 'hsl(210 18% 80%)', color: 'hsl(215 25% 25%)', backgroundColor: 'white' }}
                   >
                     <PencilSquareIcon className="w-4 h-4" />
-                    Edit
+                    Edit Order
                   </button>
-                ) : null}
+                )}
               </div>
 
               {shouldShowCertificationQr(selectedOrder) && (
                 <button
                   onClick={() => { setShowQrModal(selectedOrder); setSelectedOrder(null); }}
-                  className="w-full h-10 rounded-lg border-2 border-blue-600 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
-                  title="Show customer certification QR code"
+                  aria-label="Show customer certification QR code"
+                  className="w-full rounded-lg border-2 font-medium text-sm flex items-center justify-center gap-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                  style={{ height: '44px', borderColor: 'hsl(205 78% 42%)', color: 'hsl(205 78% 42%)', backgroundColor: 'hsl(205 78% 97%)' }}
                 >
                   <QrCodeIcon className="w-4 h-4" />
-                  Customer Certification QR
+                  Customer QR
                 </button>
               )}
             </div>
 
             {/* Destructive Action */}
-            <div className="px-6 py-3">
+            <div className="px-6 py-3 pb-6">
               <button
                 onClick={() => { setConfirmDelete(selectedOrder.id); setSelectedOrder(null); }}
-                className="w-full py-2.5 rounded-lg border border-red-300 bg-red-50 hover:bg-red-100 text-red-700 font-medium text-sm transition-colors"
-                title="Delete this work order"
+                aria-label="Delete this work order"
+                className="w-full rounded-lg border font-semibold text-sm flex items-center justify-center gap-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                style={{ height: '44px', borderColor: 'hsl(0 71% 75%)', color: 'hsl(0 71% 50%)', backgroundColor: 'hsl(0 71% 97%)' }}
               >
+                <TrashIcon className="w-4 h-4" />
                 Delete Order
               </button>
             </div>
