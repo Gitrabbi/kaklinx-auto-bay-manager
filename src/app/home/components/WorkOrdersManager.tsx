@@ -11,6 +11,8 @@ import {
   TruckIcon,
   EyeIcon,
   MagnifyingGlassIcon,
+  ClockIcon,
+  QrCodeIcon,
 } from '@heroicons/react/24/outline';
 import QRCode from 'react-qr-code';
 import { supabase } from '@/lib/supabaseClient';
@@ -88,6 +90,7 @@ export default function WorkOrdersManager() {
   const [extendCategory, setExtendCategory] = useState<'operational' | 'worker_inability' | 'customer_extra_requests'>('operational');
   const [extendReason, setExtendReason] = useState('');
   const [closedCertifiedOrderIds, setClosedCertifiedOrderIds] = useState<string[]>([]);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const getClosureStatus = (wo: any) => {
     if (closedCertifiedOrderIds.includes(wo.id)) return 'closed';
@@ -435,24 +438,17 @@ export default function WorkOrdersManager() {
         </div>
 
         <div className="flex gap-2 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-56">
-            <MagnifyingGlassIcon
-              className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2"
-              style={{ color: 'hsl(215 10% 48%)' }}
-            />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search plate or vehicle..."
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border outline-none focus:ring-2"
-              style={{ borderColor: 'hsl(210 18% 89%)', fontSize: '13px' }}
-            />
-          </div>
-
+          <input
+            type="text"
+            placeholder="Search by plate, type, or ID..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 px-3 py-1.5 rounded-lg border text-xs outline-none"
+            style={{ borderColor: 'hsl(210 18% 89%)' }}
+          />
           <button
-            type="button"
             onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white shrink-0"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1"
             style={{ backgroundColor: 'hsl(205 78% 42%)' }}
           >
             <PlusIcon className="w-4 h-4" />
@@ -475,7 +471,7 @@ export default function WorkOrdersManager() {
               No work orders yet
             </p>
             <p className="text-xs mt-1" style={{ color: 'hsl(215 10% 48%)' }}>
-              Click &quot;New Order&quot; to create your first work order
+              Create your first work order to get started.
             </p>
           </div>
         ) : (
@@ -483,68 +479,66 @@ export default function WorkOrdersManager() {
           <div className="block lg:hidden p-3 space-y-3">{filtered.map((wo) => (<div key={wo.id} onClick={() => setSelectedOrder(wo)} className="bg-white rounded-xl border p-4 shadow-sm cursor-pointer"><div className="flex justify-between"><div><div className="inline-flex px-2 py-1 mb-2 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">{wo.queueNumber || 'Unqueued'}</div><h4 className="font-semibold">{wo.plate}</h4><p className="text-xs text-gray-500">{wo.vehicleType}</p><p className="text-xs text-blue-600 mt-1">Position #{wo.queuePosition || '-'}</p></div><span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusConfig[wo.status].className}`}>{wo.status}</span></div><p className="mt-2 text-xs text-gray-500">{wo.services.join(', ')}</p><div className="flex justify-between mt-3"><span className="font-semibold">GH₵ {Number(wo.totalAmount || 0).toFixed(2)}</span><span className="text-blue-600 text-xs">Tap for actions →</span></div></div>))}</div><div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr
-                  style={{
-                    backgroundColor: 'hsl(210 20% 98%)',
-                    borderBottom: '1px solid hsl(210 18% 89%)',
-                  }}
-                >
-                  {['Order ID', 'Plate', 'Vehicle', 'Services', 'Workers', 'Status', 'Amount', 'Time', 'Actions'].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"
-                        style={{ color: 'hsl(215 10% 48%)' }}
-                      >
-                        {h}
-                      </th>
-                    )
-                  )}
+                <tr className="border-b text-left">
+                  <th className="px-4 py-3" style={{ color: 'hsl(215 10% 48%)' }}>
+                    Queue
+                  </th>
+                  <th className="px-4 py-3" style={{ color: 'hsl(215 10% 48%)' }}>
+                    Plate
+                  </th>
+                  <th className="px-4 py-3" style={{ color: 'hsl(215 10% 48%)' }}>
+                    Vehicle
+                  </th>
+                  <th className="px-4 py-3" style={{ color: 'hsl(215 10% 48%)' }}>
+                    Services
+                  </th>
+                  <th className="px-4 py-3" style={{ color: 'hsl(215 10% 48%)' }}>
+                    Status
+                  </th>
+                  <th className="px-4 py-3" style={{ color: 'hsl(215 10% 48%)' }}>
+                    Duration
+                  </th>
+                  <th className="px-4 py-3 text-right" style={{ color: 'hsl(215 10% 48%)' }}>
+                    Amount
+                  </th>
+                  <th className="px-4 py-3 text-right" style={{ color: 'hsl(215 10% 48%)' }}>
+                    Actions
+                  </th>
                 </tr>
               </thead>
-
-              <tbody className="divide-y" style={{ borderColor: 'hsl(210 18% 89%)' }}>
+              <tbody>
                 {filtered.map((wo) => {
-                  const sc = statusConfig[wo.status];
-                  const elapsed = timer[wo.id];
+                  const elapsedSecs = timer[wo.id] || 0;
                   const targetSecs = (wo.targetMinutes || 0) * 60;
-                  const extendedSecs = (wo.extensionMinutes || 0) * 60;
-                  const overtime = elapsed !== undefined ? elapsed - (targetSecs + extendedSecs) : 0;
+                  const extensionSecs = (wo.extensionMinutes || 0) * 60;
+                  const overtime = Math.max(
+                    0,
+                    elapsedSecs - (targetSecs + extensionSecs + 600)
+                  );
 
                   return (
-                    <tr key={wo.id} className="table-row-hover transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'hsl(205 78% 42%)' }}>{wo.id}</td>
-                      <td className="px-4 py-3 font-semibold" style={{ color: 'hsl(215 25% 12%)' }}>{wo.plate}</td>
-                      <td className="px-4 py-3 text-xs" style={{ color: 'hsl(215 10% 48%)' }}>{wo.vehicleType}</td>
-                      <td className="px-4 py-3 max-w-[180px]">
-                        <p className="text-xs truncate" style={{ color: 'hsl(215 25% 12%)' }}>{wo.services.join(', ') || '—'}</p>
-                      </td>
-                      <td className="px-4 py-3 text-xs" style={{ color: 'hsl(215 10% 48%)' }}>
-                        {wo.assignedWorkers.length > 0
-                          ? workers.filter((w) => wo.assignedWorkers.includes(w.id)).map((w) => w.name.split(' ')[0]).join(', ')
-                          : '—'}
-                      </td>
+                    <tr key={wo.id} className="border-b hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${sc.className}`}>{sc.label}</span>
+                        <span className="inline-flex px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
+                          {wo.queueNumber || '—'}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-xs font-semibold" style={{ color: 'hsl(215 25% 12%)' }}>
+                      <td className="px-4 py-3 font-semibold">{wo.plate}</td>
+                      <td className="px-4 py-3 text-xs">{wo.vehicleType}</td>
+                      <td className="px-4 py-3 text-xs">{wo.services?.join(', ') || '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusConfig[wo.status].className}`}>
+                          {wo.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs font-mono">
+                        {wo.status === 'In Progress' ? formatTimer(elapsedSecs) : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold">
                         GH₵ {Number(wo.totalAmount || 0).toFixed(2)}
                       </td>
-                      <td className="px-4 py-3 text-xs" style={{ color: 'hsl(215 10% 48%)' }}>
-                        {wo.status === 'In Progress' && elapsed !== undefined ? (
-                          <div className="space-y-1">
-                            <span className="font-mono text-emerald-600 font-semibold block">{formatTimer(elapsed)}</span>
-                            <span className="text-[11px] block">Target: {wo.targetMinutes || 0}m</span>
-                            {overtime > 0 && <span className="text-[11px] text-amber-600 block">Overrun: {Math.floor(overtime / 60)}m</span>}
-                          </div>
-                        ) : wo.duration ? (
-                          <span>{wo.duration}</span>
-                        ) : (
-                          <span>{formatDate(wo.createdAt)}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-1">
                           <button type="button" onClick={() => setShowQrModal(wo)} className="p-1.5 rounded-lg hover:bg-blue-50 transition-colors" title="View">
                             <EyeIcon className="w-4 h-4" style={{ color: 'hsl(205 78% 42%)' }} />
                           </button>
@@ -591,214 +585,311 @@ export default function WorkOrdersManager() {
               </tbody>
             </table>
           </div>
-          </>
+        </>
         )}
       </div>
 
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end lg:hidden">
-          <div className="bg-white rounded-t-[32px] w-full p-6 space-y-3 shadow-2xl border-t border-slate-200">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-lg">{selectedOrder.plate}</h3>
-              <button onClick={() => setSelectedOrder(null)}><XMarkIcon className="w-5 h-5" /></button>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end lg:hidden" onClick={() => { setSelectedOrder(null); setActionLoading(null); }}>
+          <div 
+            className="bg-white w-full shadow-2xl border-t border-slate-200 animate-in slide-in-from-bottom-5 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="h-1 w-12 bg-slate-300 rounded-full" />
             </div>
-            <button className="w-full py-3 rounded-lg border" onClick={() => { setViewOrder(selectedOrder); setSelectedOrder(null); }}>View Details</button>
-            {shouldShowCertificationQr(selectedOrder) && (
-              <button
-                className="w-full py-3 rounded-lg bg-blue-600 text-white"
-                onClick={() => {
-                  setShowQrModal(selectedOrder);
-                  setSelectedOrder(null);
-                }}
-              >
-                Customer Certification QR
-              </button>
-            )}
 
-            {selectedOrder.status === 'Pending' && (
-              <button className="w-full py-3 rounded-lg bg-emerald-600 text-white" onClick={() => { startWorkOrder(selectedOrder.id); setSelectedOrder(null); }}>Start Job</button>
-            )}
-            {selectedOrder.status === 'In Progress' && (
-              <>
-              <button className="w-full py-3 rounded-lg bg-green-600 text-white" onClick={() => { completeWorkOrder(selectedOrder.id); setSelectedOrder(null); }}>Complete Job</button>
-              <button className="w-full py-3 rounded-lg bg-amber-500 text-white font-semibold" onClick={() => { setExtendOrder(selectedOrder); setSelectedOrder(null); }}>
-                Extend Job Time
+            {/* Header */}
+            <div className="px-6 py-3 border-b border-slate-200 flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500 font-medium">Vehicle</p>
+                <h3 className="text-lg font-bold text-slate-900">{selectedOrder.plate}</h3>
+                <p className="text-xs text-slate-600 mt-0.5">{selectedOrder.vehicleType}</p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${statusConfig[selectedOrder.status].className}`}>
+                  {selectedOrder.status}
+                </span>
+                <button 
+                  onClick={() => { setSelectedOrder(null); setActionLoading(null); }}
+                  className="p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                  aria-label="Close"
+                >
+                  <XMarkIcon className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+            </div>
+
+            {/* Primary Action */}
+            <div className="px-6 py-4 space-y-2 border-b border-slate-200">
+              {selectedOrder.status === 'Pending' && (
+                <button
+                  onClick={() => {
+                    setActionLoading('start');
+                    startWorkOrder(selectedOrder.id);
+                    setTimeout(() => {
+                      setSelectedOrder(null);
+                      setActionLoading(null);
+                    }, 300);
+                  }}
+                  disabled={actionLoading === 'start'}
+                  className="w-full h-12 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-semibold flex items-center justify-center gap-2 transition-all"
+                  aria-busy={actionLoading === 'start'}
+                >
+                  {actionLoading === 'start' ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Starting...
+                    </>
+                  ) : (
+                    <>
+                      <PlayIcon className="w-5 h-5" />
+                      Start Job
+                    </>
+                  )}
+                </button>
+              )}
+
+              {selectedOrder.status === 'In Progress' && (
+                <button
+                  onClick={() => {
+                    setActionLoading('complete');
+                    completeWorkOrder(selectedOrder.id);
+                    setTimeout(() => {
+                      setSelectedOrder(null);
+                      setActionLoading(null);
+                    }, 300);
+                  }}
+                  disabled={actionLoading === 'complete'}
+                  className="w-full h-12 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-semibold flex items-center justify-center gap-2 transition-all"
+                  aria-busy={actionLoading === 'complete'}
+                >
+                  {actionLoading === 'complete' ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Completing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckIcon className="w-5 h-5" />
+                      Complete Job
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Secondary Actions */}
+            <div className="px-6 py-4 space-y-2 border-b border-slate-200" role="group">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => { setViewOrder(selectedOrder); setSelectedOrder(null); }}
+                  className="h-10 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+                  title="View full details"
+                >
+                  <EyeIcon className="w-4 h-4" />
+                  Details
+                </button>
+
+                {selectedOrder.status === 'Pending' || selectedOrder.status === 'In Progress' ? (
+                  <button
+                    onClick={() => { openEdit(selectedOrder); setSelectedOrder(null); }}
+                    className="h-10 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+                    title="Edit work order"
+                  >
+                    <PencilSquareIcon className="w-4 h-4" />
+                    Edit
+                  </button>
+                ) : null}
+              </div>
+
+              {shouldShowCertificationQr(selectedOrder) && (
+                <button
+                  onClick={() => { setShowQrModal(selectedOrder); setSelectedOrder(null); }}
+                  className="w-full h-10 rounded-lg border-2 border-blue-600 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+                  title="Show customer certification QR code"
+                >
+                  <QrCodeIcon className="w-4 h-4" />
+                  Customer Certification QR
+                </button>
+              )}
+            </div>
+
+            {/* Destructive Action */}
+            <div className="px-6 py-3">
+              <button
+                onClick={() => { setConfirmDelete(selectedOrder.id); setSelectedOrder(null); }}
+                className="w-full py-2.5 rounded-lg border border-red-300 bg-red-50 hover:bg-red-100 text-red-700 font-medium text-sm transition-colors"
+                title="Delete this work order"
+              >
+                Delete Order
               </button>
-              </>
-            )}
-            <button className="w-full py-3 rounded-lg border" onClick={() => { openEdit(selectedOrder); setSelectedOrder(null); }}>Edit Order</button>
-            <button className="w-full py-3 rounded-lg bg-red-500 text-white" onClick={() => { setConfirmDelete(selectedOrder.id); setSelectedOrder(null); }}>Delete Order</button>
+            </div>
           </div>
         </div>
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto">
-          <div className="min-h-screen flex items-start justify-center p-4 sm:p-6">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto my-6">
-              <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'hsl(210 18% 89%)' }}>
-                <h3 className="font-bold text-lg" style={{ color: 'hsl(215 25% 12%)' }}>
-                  {editId ? 'Edit Work Order' : 'New Work Order'}
-                </h3>
-                <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
-                  <XMarkIcon className="w-5 h-5" style={{ color: 'hsl(215 10% 48%)' }} />
-                </button>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'hsl(210 18% 89%)' }}>
+              <h3 className="font-bold text-lg" style={{ color: 'hsl(215 25% 12%)' }}>
+                {editId ? 'Edit Work Order' : 'Create New Work Order'}
+              </h3>
+              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
+                <XMarkIcon className="w-5 h-5" style={{ color: 'hsl(215 10% 48%)' }} />
+              </button>
+            </div>
 
-              <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            <div className="p-5 space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>License Plate *</label>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>
+                    License Plate
+                  </label>
                   <input
-                    required
+                    type="text"
                     value={form.plate}
                     onChange={(e) => setForm((f) => ({ ...f, plate: e.target.value }))}
-                    placeholder="e.g. GR 1234-24"
+                    placeholder="e.g., GT-1234"
                     className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2"
                     style={{ borderColor: 'hsl(210 18% 89%)' }}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>Vehicle Type *</label>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>
+                    Vehicle Type
+                  </label>
                   <select
                     value={form.vehicleType}
                     onChange={(e) => handleVehicleChange(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2"
+                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none bg-white"
                     style={{ borderColor: 'hsl(210 18% 89%)' }}
                   >
-                    {VEHICLE_TYPES.map((v) => (
-                      <option key={v} value={v}>{v}</option>
+                    {VEHICLE_TYPES.map((vt) => (
+                      <option key={vt} value={vt}>
+                        {vt}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>Services</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>
+                    Services
+                  </label>
+                  <div className="space-y-1.5">
                     {SERVICE_TYPES.map((svc) => (
-                      <label
-                        key={svc}
-                        className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border transition-colors"
-                        style={{
-                          borderColor: form.services.includes(svc) ? 'hsl(205 78% 42%)' : 'hsl(210 18% 89%)',
-                          backgroundColor: form.services.includes(svc) ? 'hsla(205,78%,42%,0.06)' : 'transparent',
-                        }}
-                      >
-                        <input type="checkbox" checked={form.services.includes(svc)} onChange={() => toggleService(svc)} className="accent-blue-500" />
-                        <span className="text-xs" style={{ color: 'hsl(215 25% 12%)' }}>{svc}</span>
+                      <label key={svc} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.services.includes(svc)}
+                          onChange={() => toggleService(svc)}
+                          className="w-4 h-4 rounded"
+                        />
+                        <span className="text-sm">{svc}</span>
                       </label>
                     ))}
                   </div>
+                  {shouldSuggestPremium && (
+                    <button
+                      type="button"
+                      onClick={applyPremiumOffer}
+                      className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                      style={{ backgroundColor: 'hsl(205 78% 42%)' }}
+                    >
+                      Suggest Premium Offer (10% off)
+                    </button>
+                  )}
                 </div>
-
-                <div className="mt-3">
-                  <p className="text-xs font-semibold mb-1" style={{ color: 'hsl(215 10% 48%)' }}>
-                    Smart Assignment
-                  </p>
-
-                  <WorkerRecommendationPanel
-                    workers={workers}
-                    selectedServices={form.services}
-                    assignedWorkers={form.assignedWorkers}
-                    onSelectWorker={(workerId) => {
-                      setForm((f) => ({
-                        ...f,
-                        assignedWorkers: f.assignedWorkers.includes(workerId)
-                          ? f.assignedWorkers
-                          : [...f.assignedWorkers, workerId],
-                      }));
-                    }}
-                  />
-                </div>
-
-                {shouldSuggestPremium && (
-                  <div className="rounded-lg border p-3 bg-blue-50" style={{ borderColor: 'hsl(205 78% 42%)' }}>
-                    <p className="text-sm font-semibold text-blue-800">Premium offer available</p>
-                    <p className="text-xs text-blue-700 mt-1">
-                      This customer is close to a premium package. Offer Premium Service with a 10% discount?
-                    </p>
-                    <div className="flex gap-2 mt-3">
-                      <button type="button" onClick={applyPremiumOffer} className="px-3 py-2 rounded-lg text-xs font-semibold text-white" style={{ backgroundColor: 'hsl(205 78% 42%)' }}>
-                        Apply Premium Offer
-                      </button>
-                      <button type="button" className="px-3 py-2 rounded-lg text-xs font-semibold border bg-white">
-                        Keep Selected Services
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>Assign Workers</label>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>
+                    Assigned Workers
+                  </label>
                   <div className="space-y-1.5">
                     {workers.map((w) => (
-                      <label
-                        key={w.id}
-                        className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border transition-colors"
-                        style={{
-                          borderColor: form.assignedWorkers.includes(w.id) ? 'hsl(205 78% 42%)' : 'hsl(210 18% 89%)',
-                          backgroundColor: form.assignedWorkers.includes(w.id) ? 'hsla(205,78%,42%,0.06)' : 'transparent',
-                        }}
-                      >
-                        <input type="checkbox" checked={form.assignedWorkers.includes(w.id)} onChange={() => toggleWorker(w.id)} className="accent-blue-500" />
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'hsla(25,95%,53%,0.15)', color: 'hsl(25 95% 53%)' }}>
-                          {w.initials}
-                        </div>
-                        <span className="text-xs" style={{ color: 'hsl(215 25% 12%)' }}>{w.name}</span>
-                        <span className="ml-auto text-xs" style={{ color: 'hsl(215 10% 48%)' }}>{w.status}</span>
+                      <label key={w.id} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.assignedWorkers.includes(w.id)}
+                          onChange={() => toggleWorker(w.id)}
+                          className="w-4 h-4 rounded"
+                        />
+                        <span className="text-sm">{w.name}</span>
                       </label>
                     ))}
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>Additional Service Description</label>
-                  <input
-                    value={form.additionalServiceDescription}
-                    onChange={(e) => setForm((f) => ({ ...f, additionalServiceDescription: e.target.value }))}
-                    placeholder="e.g. Seat stain removal, extra detailing"
-                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2"
-                    style={{ borderColor: 'hsl(210 18% 89%)' }}
-                  />
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>
+                      Subtotal
+                    </label>
+                    <input
+                      type="number"
+                      value={calculateServiceTotal(form.vehicleType, form.services).toFixed(2)}
+                      readOnly
+                      className="w-full px-3 py-2 rounded-lg border text-sm bg-gray-50 outline-none"
+                      style={{ borderColor: 'hsl(210 18% 89%)' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>
+                      Add. Service
+                    </label>
+                    <input
+                      type="number"
+                      value={form.additionalServiceCost}
+                      onChange={(e) => handleAdditionalCostChange(e.target.value)}
+                      placeholder="0"
+                      className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2"
+                      style={{ borderColor: 'hsl(210 18% 89%)' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>
+                      Discount
+                    </label>
+                    <input
+                      type="number"
+                      value={form.discount}
+                      onChange={(e) => handleDiscountChange(e.target.value)}
+                      placeholder="0"
+                      className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2"
+                      style={{ borderColor: 'hsl(210 18% 89%)' }}
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>Additional Service Cost (GH₵)</label>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>
+                    Total Amount
+                  </label>
                   <input
                     type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.additionalServiceCost}
-                    onChange={(e) => handleAdditionalCostChange(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2"
-                    style={{ borderColor: 'hsl(210 18% 89%)' }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>Discount (GH₵)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.discount}
-                    onChange={(e) => handleDiscountChange(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2"
-                    style={{ borderColor: 'hsl(210 18% 89%)' }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>Total Amount (GH₵)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
                     value={form.totalAmount}
                     readOnly
-                    placeholder="0.00"
+                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none bg-gray-50 font-bold"
+                    style={{ borderColor: 'hsl(210 18% 89%)' }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'hsl(215 25% 12%)' }}>
+                    Additional Service Description
+                  </label>
+                  <input
+                    type="text"
+                    value={form.additionalServiceDescription}
+                    onChange={(e) => setForm((f) => ({ ...f, additionalServiceDescription: e.target.value }))}
+                    placeholder="Optional"
                     className="w-full px-3 py-2 rounded-lg border text-sm outline-none bg-gray-50"
                     style={{ borderColor: 'hsl(210 18% 89%)' }}
                   />
@@ -847,14 +938,8 @@ export default function WorkOrdersManager() {
                 ['Queue Position', String(viewOrder.queuePosition || '—')],
                 ['License Plate', viewOrder.plate],
                 ['Vehicle Type', viewOrder.vehicleType],
-                ['Services', viewOrder.services.join(', ') || '—'],
+                ['Services', (viewOrder.services || []).join(', ') || '—'],
                 ['Status', viewOrder.status],
-                ['Closure Status', getClosureStatus(viewOrder)],
-                ['Assigned Workers', workers.filter((w) => viewOrder.assignedWorkers.includes(w.id)).map((w) => w.name).join(', ') || '—'],
-                ['Additional Service', (viewOrder as any).additionalServiceDescription || '—'],
-                ['Additional Cost', (viewOrder as any).additionalServiceCost ? `GH₵ ${Number((viewOrder as any).additionalServiceCost).toFixed(2)}` : '—'],
-                ['Discount', (viewOrder as any).discount ? `GH₵ ${Number((viewOrder as any).discount).toFixed(2)}` : '—'],
-                ['Total Amount', viewOrder.totalAmount ? `GH₵ ${viewOrder.totalAmount.toFixed(2)}` : '—'],
                 ['Created', formatDate(viewOrder.createdAt)],
                 ['Started', viewOrder.startedAt ? formatDate(viewOrder.startedAt) : '—'],
                 ['Completed', viewOrder.completedAt ? formatDate(viewOrder.completedAt) : '—'],
@@ -871,25 +956,25 @@ export default function WorkOrdersManager() {
                   <span className="text-xs text-right" style={{ color: 'hsl(215 25% 12%)' }}>{value}</span>
                 </div>
               ))}
+            </div>
 
-              
+            <div className="p-5 border-t flex gap-3" style={{ borderColor: 'hsl(210 18% 89%)' }}>
+              <button onClick={() => setViewOrder(null)} className="flex-1 py-2.5 rounded-lg border text-sm font-medium" style={{ borderColor: 'hsl(210 18% 89%)', color: 'hsl(215 10% 48%)' }}>
+                Close
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      
       {showQrModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}>
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 text-center">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg">Customer Certification</h3>
-              <button onClick={() => setShowQrModal(null)} className="p-2 rounded-lg hover:bg-gray-100">
-                <XMarkIcon className="w-5 h-5" />
-              </button>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+            <h3 className="font-bold text-lg mb-3" style={{ color: 'hsl(215 25% 12%)' }}>
+              QR Code
+            </h3>
 
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-5">
               <QRCode
                 value={`${window.location.origin}/customer-certify/${showQrModal.id}`}
                 size={260}
