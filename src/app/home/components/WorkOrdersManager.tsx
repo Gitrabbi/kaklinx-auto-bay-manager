@@ -767,7 +767,7 @@ export default function WorkOrdersManager() {
                   style={{ height: '44px', borderColor: CLR_PRIMARY, color: CLR_PRIMARY, backgroundColor: CLR_PRIMARY_BG }}
                 >
                   <QrCodeIcon className="w-4 h-4" />
-                  Customer QR
+                  Customer Certification QR
                 </button>
               )}
             </div>
