@@ -90,7 +90,7 @@ export default function WorkOrdersManager() {
   const [extendCategory, setExtendCategory] = useState<'operational' | 'worker_inability' | 'customer_extra_requests'>('operational');
   const [extendReason, setExtendReason] = useState('');
   const [closedCertifiedOrderIds, setClosedCertifiedOrderIds] = useState<string[]>([]);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<'start' | 'complete' | null>(null);
 
   const getClosureStatus = (wo: any) => {
     if (closedCertifiedOrderIds.includes(wo.id)) return 'closed';
@@ -99,6 +99,16 @@ export default function WorkOrdersManager() {
 
   const shouldShowCertificationQr = (wo: any) => {
     return wo.status === 'Completed' && getClosureStatus(wo) === 'awaiting_customer';
+  };
+
+  const handlePrimarySheetAction = async (loadingState: 'start' | 'complete', action: () => void | Promise<void>) => {
+    setActionLoading(loadingState);
+    try {
+      await Promise.resolve(action());
+    } finally {
+      setActionLoading(null);
+      setSelectedOrder(null);
+    }
   };
 
   React.useEffect(() => {
@@ -592,20 +602,24 @@ export default function WorkOrdersManager() {
       {selectedOrder && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-end lg:hidden" onClick={() => { setSelectedOrder(null); setActionLoading(null); }}>
           <div 
-            className="bg-white w-full shadow-2xl border-t border-slate-200 animate-in slide-in-from-bottom-5 duration-300"
+            className="bg-white w-full shadow-2xl border-t animate-in slide-in-from-bottom-5 duration-300"
+            style={{ borderColor: 'hsl(210 18% 89%)' }}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="work-order-action-sheet-title"
           >
             {/* Drag Handle */}
-            <div className="flex justify-center pt-3 pb-2">
+            <div className="flex justify-center pt-3 pb-1">
               <div className="h-1 w-12 bg-slate-300 rounded-full" />
             </div>
 
             {/* Header */}
-            <div className="px-6 py-3 border-b border-slate-200 flex items-start justify-between gap-4">
+            <div className="px-5 py-3 border-b flex items-start justify-between gap-4" style={{ borderColor: 'hsl(210 18% 89%)' }}>
               <div className="min-w-0">
-                <p className="text-xs text-slate-500 font-medium">Vehicle</p>
-                <h3 className="text-lg font-bold text-slate-900">{selectedOrder.plate}</h3>
-                <p className="text-xs text-slate-600 mt-0.5">{selectedOrder.vehicleType}</p>
+                <p className="text-xs font-medium" style={{ color: 'hsl(215 10% 48%)' }}>Vehicle</p>
+                <h3 id="work-order-action-sheet-title" className="text-lg font-bold" style={{ color: 'hsl(215 25% 12%)' }}>{selectedOrder.plate}</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'hsl(215 10% 48%)' }}>{selectedOrder.vehicleType}</p>
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -614,33 +628,29 @@ export default function WorkOrdersManager() {
                 </span>
                 <button 
                   onClick={() => { setSelectedOrder(null); setActionLoading(null); }}
-                  className="p-1 rounded-lg hover:bg-slate-100 transition-colors"
-                  aria-label="Close"
+                  className="h-11 w-11 rounded-lg flex items-center justify-center transition-colors"
+                  style={{ color: 'hsl(215 10% 48%)' }}
+                  aria-label="Close work order actions"
                 >
-                  <XMarkIcon className="w-5 h-5 text-slate-500" />
+                  <XMarkIcon className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
             {/* Primary Action */}
-            <div className="px-6 py-4 space-y-2 border-b border-slate-200">
+            <div className="px-5 py-4 border-b" style={{ borderColor: 'hsl(210 18% 89%)' }}>
               {selectedOrder.status === 'Pending' && (
                 <button
-                  onClick={() => {
-                    setActionLoading('start');
-                    startWorkOrder(selectedOrder.id);
-                    setTimeout(() => {
-                      setSelectedOrder(null);
-                      setActionLoading(null);
-                    }, 300);
-                  }}
+                  onClick={() => handlePrimarySheetAction('start', () => startWorkOrder(selectedOrder.id))}
                   disabled={actionLoading === 'start'}
-                  className="w-full h-12 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-semibold flex items-center justify-center gap-2 transition-all"
+                  className="w-full h-[52px] rounded-xl text-white font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                  style={{ backgroundColor: 'hsl(205 78% 42%)' }}
                   aria-busy={actionLoading === 'start'}
+                  aria-label="Start work order"
                 >
                   {actionLoading === 'start' ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Starting...
                     </>
                   ) : (
@@ -655,20 +665,32 @@ export default function WorkOrdersManager() {
               {selectedOrder.status === 'In Progress' && (
                 <button
                   onClick={() => {
-                    setActionLoading('complete');
-                    completeWorkOrder(selectedOrder.id);
-                    setTimeout(() => {
+                    const elapsedSecs = timer[selectedOrder.id] || 0;
+                    const targetSecs = (selectedOrder.targetMinutes || 0) * 60;
+                    const extensionSecs = (selectedOrder.extensionMinutes || 0) * 60;
+                    const overtime = Math.max(0, elapsedSecs - (targetSecs + extensionSecs + 600));
+                    if (overtime > 0) {
+                      setExtendOrder(selectedOrder);
                       setSelectedOrder(null);
                       setActionLoading(null);
-                    }, 300);
+                      return;
+                    }
+                    handlePrimarySheetAction('complete', () => completeWorkOrder(selectedOrder.id));
                   }}
                   disabled={actionLoading === 'complete'}
-                  className="w-full h-12 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-semibold flex items-center justify-center gap-2 transition-all"
+                  className="w-full h-[52px] rounded-xl text-white font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                  style={{ backgroundColor: 'hsl(205 78% 42%)' }}
                   aria-busy={actionLoading === 'complete'}
+                  aria-label={(timer[selectedOrder.id] || 0) - (((selectedOrder.targetMinutes || 0) + (selectedOrder.extensionMinutes || 0)) * 60 + 600) > 0 ? 'Extend work order time' : 'Complete work order'}
                 >
-                  {actionLoading === 'complete' ? (
+                  {((timer[selectedOrder.id] || 0) - (((selectedOrder.targetMinutes || 0) + (selectedOrder.extensionMinutes || 0)) * 60 + 600)) > 0 ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <ClockIcon className="w-5 h-5" />
+                      Extend Time
+                    </>
+                  ) : actionLoading === 'complete' ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Completing...
                     </>
                   ) : (
@@ -682,48 +704,51 @@ export default function WorkOrdersManager() {
             </div>
 
             {/* Secondary Actions */}
-            <div className="px-6 py-4 space-y-2 border-b border-slate-200" role="group">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => { setViewOrder(selectedOrder); setSelectedOrder(null); }}
-                  className="h-10 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm flex items-center justify-center gap-2 transition-colors"
-                  title="View full details"
-                >
-                  <EyeIcon className="w-4 h-4" />
-                  Details
-                </button>
-
-                {selectedOrder.status === 'Pending' || selectedOrder.status === 'In Progress' ? (
-                  <button
-                    onClick={() => { openEdit(selectedOrder); setSelectedOrder(null); }}
-                    className="h-10 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm flex items-center justify-center gap-2 transition-colors"
-                    title="Edit work order"
-                  >
-                    <PencilSquareIcon className="w-4 h-4" />
-                    Edit
-                  </button>
-                ) : null}
-              </div>
+            <div className="px-5 py-4 space-y-2 border-b" style={{ borderColor: 'hsl(210 18% 89%)' }} role="group" aria-label="Additional work order actions">
 
               {shouldShowCertificationQr(selectedOrder) && (
                 <button
                   onClick={() => { setShowQrModal(selectedOrder); setSelectedOrder(null); }}
-                  className="w-full h-10 rounded-lg border-2 border-blue-600 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
-                  title="Show customer certification QR code"
+                  className="w-full h-11 rounded-xl border bg-white font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+                  style={{ borderColor: 'hsl(210 18% 89%)', color: 'hsl(205 78% 42%)' }}
+                  aria-label="Show customer certification QR code"
                 >
-                  <QrCodeIcon className="w-4 h-4" />
-                  Customer Certification QR
+                  <QrCodeIcon className="w-5 h-5" />
+                  Customer QR
                 </button>
               )}
+
+              <button
+                onClick={() => { setViewOrder(selectedOrder); setSelectedOrder(null); }}
+                className="w-full h-11 rounded-xl border bg-white font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+                style={{ borderColor: 'hsl(210 18% 89%)', color: 'hsl(215 10% 48%)' }}
+                aria-label="View work order details"
+              >
+                <EyeIcon className="w-5 h-5" />
+                View Details
+              </button>
+
+              {selectedOrder.status === 'Pending' || selectedOrder.status === 'In Progress' ? (
+                <button
+                  onClick={() => { openEdit(selectedOrder); setSelectedOrder(null); }}
+                  className="w-full h-11 rounded-xl border bg-white font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+                  style={{ borderColor: 'hsl(210 18% 89%)', color: 'hsl(215 10% 48%)' }}
+                  aria-label="Edit work order"
+                >
+                  <PencilSquareIcon className="w-5 h-5" />
+                  Edit Order
+                </button>
+              ) : null}
             </div>
 
             {/* Destructive Action */}
-            <div className="px-6 py-3">
+            <div className="px-5 py-4">
               <button
                 onClick={() => { setConfirmDelete(selectedOrder.id); setSelectedOrder(null); }}
-                className="w-full py-2.5 rounded-lg border border-red-300 bg-red-50 hover:bg-red-100 text-red-700 font-medium text-sm transition-colors"
-                title="Delete this work order"
+                className="w-full h-11 rounded-xl border border-red-300 text-red-600 font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+                aria-label="Delete work order"
               >
+                <TrashIcon className="w-5 h-5" />
                 Delete Order
               </button>
             </div>
