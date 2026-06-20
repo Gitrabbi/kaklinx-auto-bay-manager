@@ -5,24 +5,31 @@ import { supabase } from '@/lib/supabaseClient';
 
 type WorkOrder = {
   id: string;
-  queue_number?: string;
-  queueNumber?: string;
-  queue_position?: number;
-  queuePosition?: number;
-  vehicle_type?: string;
-  vehicleType?: string;
-  plate?: string;
-  services?: string[] | string;
-  status?: string;
-  completed_at?: string;
-  completedAt?: string;
-  target_minutes?: number;
-  targetMinutes?: number;
+  queue_number: string;
+  queue_position: number;
+  vehicle_type: string;
+  plate: string;
+  services: string[] | string;
+  status: string;
+  completed_at: string | null;
+  created_at: string;
+  target_minutes: number;
+  source: 'customer_app' | 'walk_in';
+  is_vip: boolean;
+  bay_number: number | null;
+  priority_position: number | null;
+  queue_date: string | null;
 };
+
+function todayISO() {
+  return new Date().toISOString().split('T')[0];
+}
 
 export default function QueueTVPage() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [now, setNow] = useState(new Date());
+  const [loadError, setLoadError] = useState(false);
+  const [servingIndex, setServingIndex] = useState(0);
 
   useEffect(() => {
     loadQueue();
@@ -44,29 +51,44 @@ export default function QueueTVPage() {
     };
   }, []);
 
+  // Cycle through active jobs every 5 seconds
+  useEffect(() => {
+    const cycleTimer = setInterval(() => {
+      setServingIndex((prev) => prev + 1);
+    }, 5000);
+    return () => clearInterval(cycleTimer);
+  }, []);
+
   async function loadQueue() {
-    const { data } = await supabase
+    const today = todayISO();
+    const { data, error } = await supabase
       .from('work_orders')
       .select('*')
+      .eq('queue_date', today)
       .order('queue_position', { ascending: true });
 
+    if (error) {
+      console.error('Queue TV load error:', error.message);
+      setLoadError(true);
+      return;
+    }
+
+    setLoadError(false);
     setWorkOrders((data as WorkOrder[]) || []);
   }
 
   const activeJobs = useMemo(
     () =>
-      workOrders.filter((w) =>
-        ['in progress', 'in_progress'].includes(
-          String(w.status || '').toLowerCase()
-        )
+      workOrders.filter(
+        (w) => w.status === 'In Progress'
       ),
     [workOrders]
   );
 
   const pendingJobs = useMemo(
     () =>
-      workOrders.filter((w) =>
-        ['pending'].includes(String(w.status || '').toLowerCase())
+      workOrders.filter(
+        (w) => w.status === 'Pending'
       ),
     [workOrders]
   );
@@ -74,20 +96,21 @@ export default function QueueTVPage() {
   const completedJobs = useMemo(
     () =>
       workOrders
-        .filter((w) => {
-          const s = String(w.status || '').toLowerCase();
-          return s === 'completed' || !!(w.completed_at || w.completedAt);
-        })
+        .filter(
+          (w) => w.status === 'Completed' && w.completed_at
+        )
         .slice(-12)
         .reverse(),
     [workOrders]
   );
 
-  const nowServing = activeJobs[0];
+  const nowServing = activeJobs.length > 0
+    ? activeJobs[servingIndex % activeJobs.length]
+    : null;
 
   const averageWait = Math.round(
     pendingJobs.reduce(
-      (a, b) => a + Number(b.target_minutes || b.targetMinutes || 20),
+      (a, b) => a + Number(b.target_minutes || 20),
       0
     ) / Math.max(pendingJobs.length, 1)
   );
@@ -101,6 +124,43 @@ export default function QueueTVPage() {
     if (value.includes('repair')) return 'bg-rose-500/15 text-rose-300 border-rose-400/30';
     if (value.includes('diagnostic')) return 'bg-violet-500/15 text-violet-300 border-violet-400/30';
     return 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30';
+  };
+
+  const sourceBadge = (order: WorkOrder) => {
+    if (order.is_vip) {
+      return (
+        <span className="px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-yellow-500/15 text-yellow-300 border-yellow-400/30">
+          ⭐ VIP
+        </span>
+      );
+    }
+    if (order.source === 'customer_app') {
+      return (
+        <span className="px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-violet-500/15 text-violet-300 border-violet-400/30">
+          📱 Booked
+        </span>
+      );
+    }
+    return (
+      <span className="px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-slate-500/15 text-slate-300 border-slate-400/30">
+        🚶 Walk-in
+      </span>
+    );
+  };
+
+  const bayBadge = (order: WorkOrder) => {
+    if (!order.bay_number) return null;
+    const colors: Record<number, string> = {
+      1: 'bg-orange-500/15 text-orange-300 border-orange-400/30',
+      2: 'bg-blue-500/15 text-blue-300 border-blue-400/30',
+      3: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30',
+    };
+    const cls = colors[order.bay_number] || 'bg-slate-500/15 text-slate-300 border-slate-400/30';
+    return (
+      <span className={`px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${cls}`}>
+        Bay {order.bay_number}
+      </span>
+    );
   };
 
   const renderServices = (services: WorkOrder['services']) => {
@@ -172,7 +232,7 @@ export default function QueueTVPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black tracking-[0.2em] text-white">
-                KAKLINX <span className="text-cyan-300">AUTO</span> BAY MANAGER 
+                KAKLINX <span className="text-cyan-300">AUTO</span> BAY MANAGER
               </h1>
               <p className="mt-1 text-xs font-medium uppercase tracking-[0.4em] text-slate-400">
                 Live Service Dashboard
@@ -181,6 +241,14 @@ export default function QueueTVPage() {
           </div>
 
           <div className="flex items-center gap-6">
+            {loadError && (
+              <div className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-500/10 px-4 py-1.5 backdrop-blur-xl">
+                <span className="h-2 w-2 rounded-full bg-red-400" />
+                <span className="text-xs font-semibold uppercase tracking-[0.25em] text-red-300">
+                  Reconnecting
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-1.5 backdrop-blur-xl">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -234,7 +302,7 @@ export default function QueueTVPage() {
 
         {/* Main grid */}
         <div className="mt-6 grid flex-1 min-h-0 grid-cols-12 gap-6">
-          {/* UP NEXT 鈥� fixed height, internal scroll */}
+          {/* UP NEXT */}
           <section className="col-span-3 flex min-h-0 flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-3xl shadow-[0_0_60px_-20px_rgba(34,211,238,0.25)]">
             <div className="flex items-center justify-between border-b border-white/5 px-6 py-4">
               <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-300">
@@ -250,21 +318,27 @@ export default function QueueTVPage() {
                   Queue is clear
                 </div>
               )}
-              {pendingJobs.map((job, idx) => (
+              {pendingJobs.map((job) => (
                 <div
                   key={job.id}
-                  className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 backdrop-blur-xl transition-colors hover:border-cyan-400/30"
+                  className={`rounded-2xl border p-4 backdrop-blur-xl transition-colors ${
+                    job.is_vip
+                      ? 'border-yellow-400/30 bg-yellow-900/10 hover:border-yellow-400/50'
+                      : 'border-white/5 bg-slate-900/40 hover:border-cyan-400/30'
+                  }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="text-3xl font-black tracking-tight text-cyan-300 tabular-nums">
-                      {job.queue_number || job.queueNumber}
+                    <div className={`text-3xl font-black tracking-tight tabular-nums ${
+                      job.is_vip ? 'text-yellow-300' : 'text-cyan-300'
+                    }`}>
+                      {job.queue_number}
                     </div>
-                    <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                      #{job.queue_position || job.queuePosition}
+                    <div className="flex items-center gap-2">
+                      {sourceBadge(job)}
                     </div>
                   </div>
                   <div className="mt-1 truncate text-sm font-semibold text-white">
-                    {job.vehicle_type || job.vehicleType || 'Vehicle'}
+                    {job.vehicle_type || 'Vehicle'}
                   </div>
                   <div className="text-xs text-slate-400">Plate: {job.plate || 'N/A'}</div>
                   <div className="mt-3">{renderServices(job.services)}</div>
@@ -273,7 +347,7 @@ export default function QueueTVPage() {
             </div>
           </section>
 
-          {/* NOW SERVING 鈥� massive center stage */}
+          {/* NOW SERVING */}
           <section className="col-span-6 relative flex min-h-0 flex-col overflow-hidden rounded-[2.5rem] border border-cyan-400/20 bg-gradient-to-br from-cyan-500/[0.07] via-blue-600/[0.04] to-transparent backdrop-blur-3xl shadow-[0_0_120px_-30px_rgba(34,211,238,0.5)]">
             {/* Ambient inner glow */}
             <div className="pointer-events-none absolute inset-0">
@@ -292,8 +366,29 @@ export default function QueueTVPage() {
                 </h2>
               </div>
               {nowServing && (
-                <div className="rounded-full border border-cyan-300/40 bg-cyan-400/15 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.3em] text-cyan-200 backdrop-blur-xl">
-                  In Progress
+                <div className="flex items-center gap-3">
+                  {activeJobs.length > 1 && (
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                      {(servingIndex % activeJobs.length) + 1}/{activeJobs.length}
+                    </span>
+                  )}
+                  {nowServing.is_vip && (
+                    <span className="rounded-full border border-yellow-300/40 bg-yellow-400/15 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-yellow-200 backdrop-blur-xl">
+                      ⭐ VIP
+                    </span>
+                  )}
+                  {bayBadge(nowServing) && (
+                    <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.25em] backdrop-blur-xl ${
+                      nowServing.bay_number === 1 ? 'border-orange-300/40 bg-orange-400/15 text-orange-200' :
+                      nowServing.bay_number === 2 ? 'border-blue-300/40 bg-blue-400/15 text-blue-200' :
+                      'border-emerald-300/40 bg-emerald-400/15 text-emerald-200'
+                    }`}>
+                      Bay {nowServing.bay_number}
+                    </span>
+                  )}
+                  <div className="rounded-full border border-cyan-300/40 bg-cyan-400/15 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.3em] text-cyan-200 backdrop-blur-xl">
+                    In Progress
+                  </div>
                 </div>
               )}
             </div>
@@ -308,15 +403,18 @@ export default function QueueTVPage() {
                     className="mt-3 bg-gradient-to-b from-white via-cyan-100 to-cyan-300 bg-clip-text font-black leading-none tracking-tighter text-transparent"
                     style={{ fontSize: 'clamp(7rem, 14vw, 13rem)' }}
                   >
-                    {nowServing.queue_number || nowServing.queueNumber}
+                    {nowServing.queue_number}
                   </div>
 
                   <div className="mt-6 flex flex-col items-center gap-2">
                     <div className="text-3xl font-bold tracking-tight text-white">
-                      {nowServing.vehicle_type || nowServing.vehicleType || 'Vehicle'}
+                      {nowServing.vehicle_type || 'Vehicle'}
                     </div>
-                    <div className="rounded-full border border-white/10 bg-white/5 px-5 py-1.5 text-base font-medium tracking-wider text-slate-200 backdrop-blur-xl">
-                      Plate 路 <span className="text-white">{nowServing.plate || 'N/A'}</span>
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-full border border-white/10 bg-white/5 px-5 py-1.5 text-base font-medium tracking-wider text-slate-200 backdrop-blur-xl">
+                        Plate &middot; <span className="text-white">{nowServing.plate || 'N/A'}</span>
+                      </div>
+                      {sourceBadge(nowServing)}
                     </div>
                   </div>
 
@@ -342,7 +440,7 @@ export default function QueueTVPage() {
                   <div className="mt-8 flex items-center gap-3 rounded-2xl border border-cyan-300/30 bg-cyan-500/10 px-5 py-3 backdrop-blur-xl">
                     <div className="h-2 w-2 animate-pulse rounded-full bg-cyan-300" />
                     <div className="text-[11px] font-semibold uppercase tracking-[0.35em] text-cyan-200">
-                      Service in progress 路 Thank you for your patience
+                      Service in progress &middot; Thank you for your patience
                     </div>
                   </div>
                 </>
@@ -362,7 +460,7 @@ export default function QueueTVPage() {
             </div>
           </section>
 
-          {/* RECENTLY COMPLETED 鈥� fixed height, internal scroll */}
+          {/* RECENTLY COMPLETED */}
           <section className="col-span-3 flex min-h-0 flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-3xl shadow-[0_0_60px_-20px_rgba(59,130,246,0.25)]">
             <div className="flex items-center justify-between border-b border-white/5 px-6 py-4">
               <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-300">
@@ -385,14 +483,17 @@ export default function QueueTVPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-lg font-black tracking-tight text-sky-300 tabular-nums">
-                      {job.queue_number || job.queueNumber}
+                      {job.queue_number}
                     </div>
-                    <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                      Done
+                    <div className="flex items-center gap-2">
+                      {sourceBadge(job)}
+                      <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                        Done
+                      </div>
                     </div>
                   </div>
                   <div className="mt-1 truncate text-sm font-semibold text-white">
-                    {job.vehicle_type || job.vehicleType || 'Vehicle'}
+                    {job.vehicle_type || 'Vehicle'}
                   </div>
                   <div className="text-xs text-slate-400">Plate: {job.plate || 'N/A'}</div>
                 </div>
@@ -403,4 +504,4 @@ export default function QueueTVPage() {
       </div>
     </main>
   );
-        }
+}
