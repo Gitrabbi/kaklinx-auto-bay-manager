@@ -120,6 +120,7 @@ export default function CustomerOrdersManager() {
       targetMinutes: targetMinutes > 0 ? targetMinutes : 30,
       qualityPassed: true,
       extensionMinutes: 0,
+      source: 'customer_app',
     });
 
     const { error } = await supabase
