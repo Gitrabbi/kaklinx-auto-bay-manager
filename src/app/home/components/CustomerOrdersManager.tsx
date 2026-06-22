@@ -104,24 +104,24 @@ export default function CustomerOrdersManager() {
     const targetMinutes = calculateTargetMinutes(order.vehicle_type, services);
 
     const newWorkOrder = addWorkOrder({
-      plate: order.license_plate || 'N/A',
-      vehicleType: order.vehicle_type,
-      services,
-      status: 'Pending',
-      assignedWorkers: assignedWorkerIds,
-      notes: order.notes
-        ? `Customer order request: ${order.notes}`
-        : 'Created from customer online order request.',
-      totalAmount: Number(order.total_amount || 0),
-      additionalServiceDescription: '',
-      additionalServiceCost: 0,
-      discount: 0,
-      closureStatus: 'open',
-      targetMinutes: targetMinutes > 0 ? targetMinutes : 30,
-      qualityPassed: true,
-      extensionMinutes: 0,
-      source:'customer_app',
-    });
+  plate: order.license_plate || 'N/A',
+  vehicleType: order.vehicle_type,
+  services,
+  status: 'Pending',
+  assignedWorkers: assignedWorkerIds,
+  notes: order.notes
+    ? `Customer order request: ${order.notes}`
+    : 'Created from customer online order request.',
+  totalAmount: Number(order.total_amount || 0),
+  additionalServiceDescription: '',
+  additionalServiceCost: 0,
+  discount: 0,
+  closureStatus: 'open',
+  targetMinutes: targetMinutes > 0 ? targetMinutes : 30,
+  qualityPassed: true,
+  extensionMinutes: 0,
+  source: 'customer_app',  // ← the new line
+});
 
     const { error } = await supabase
       .from('customer_orders')
