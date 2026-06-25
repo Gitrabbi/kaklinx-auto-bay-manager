@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { useAppData } from '../../../context/AppDataContext';
+import { useAppData } from '@/context/AppDataContext';
 
 type UtilityType = 'electricity' | 'water';
 
