@@ -132,6 +132,10 @@ interface AppDataContextType {
   utilityLogs: UtilityLog[];
   expenditures: ExpenditureItem[];
 
+  lastError: string | null;
+  loadError: string | null;
+  clearError: () => void;
+
   addWorkOrder: (wo: Omit<WorkOrder, 'id' | 'createdAt'>) => WorkOrder;
   updateWorkOrder: (id: string, updates: Partial<WorkOrder>) => void;
   deleteWorkOrder: (id: string) => void;
@@ -472,15 +476,27 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [pricing, setPricing] = useState<PricingItem[]>([]);
   const [utilityLogs, setUtilityLogs] = useState<UtilityLog[]>([]);
   const [expenditures, setExpenditures] = useState<ExpenditureItem[]>([]);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const clearError = useCallback(() => {
+    setLastError(null);
+  }, []);
+
+  const reportError = useCallback((context: string, message: string) => {
+    const errorMessage = `${context}: ${message}`;
+    console.error(errorMessage);
+    setLastError(errorMessage);
+  }, []);
 
   const loadUtilityLogs = useCallback(async () => {
     const { data, error } = await supabase.from('utility_logs').select('*').order('log_date', { ascending: false });
     if (error) {
-      console.error('Load utility logs error:', error.message);
+      reportError('Load utility logs', error.message);
       return;
     }
     if (data) setUtilityLogs(data.map(dbToUtilityLog));
-  }, []);
+  }, [reportError]);
 
   const loadAllData = useCallback(async () => {
     const [
@@ -547,7 +563,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       utilityLogsRes.error ||
       expendituresRes.error;
 
-    if (firstError) console.error('Supabase load error:', firstError.message);
+    if (firstError) {
+      const errorMsg = `Failed to load data: ${firstError.message}`;
+      console.error('Supabase load error:', firstError.message);
+      setLoadError(errorMsg);
+    } else {
+      setLoadError(null);
+    }
   }, []);
 
   useEffect(() => {
@@ -579,13 +601,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     setWorkOrders(normalizedList);
     supabase.from('work_orders').insert(workOrderToDb(newWO)).then(({ error }) => {
-      if (error) console.error('Add work order error:', error.message);
+      if (error) {
+        reportError('Add work order', error.message);
+        setWorkOrders((prev) => normalizeQueueOrders(prev.filter((wo) => wo.id !== id)));
+      }
     });
     return newWO;
-  }, [workOrders]);
+  }, [workOrders, reportError]);
 
   const updateWorkOrder = useCallback((id: string, updates: Partial<WorkOrder>) => {
     setWorkOrders((prev) => {
+      const original = prev.find((wo) => wo.id === id);
       const updatedList = prev.map((wo) => {
         if (wo.id !== id) return wo;
         return { ...wo, ...updates };
@@ -596,20 +622,33 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
       if (updatedOrder) {
         supabase.from('work_orders').update(workOrderToDb(updatedOrder)).eq('id', id).then(({ error }) => {
-          if (error) console.error('Update work order error:', error.message);
+          if (error) {
+            reportError('Update work order', error.message);
+            if (original) {
+              setWorkOrders((curr) =>
+                normalizeQueueOrders(curr.map((wo) => (wo.id === id ? original : wo)))
+              );
+            }
+          }
         });
       }
 
       return normalized;
     });
-  }, []);
+  }, [reportError]);
 
   const deleteWorkOrder = useCallback((id: string) => {
+    const removed = workOrders.find((wo) => wo.id === id);
     setWorkOrders((prev) => normalizeQueueOrders(prev.filter((wo) => wo.id !== id)));
     supabase.from('work_orders').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Delete work order error:', error.message);
+      if (error) {
+        reportError('Delete work order', error.message);
+        if (removed) {
+          setWorkOrders((prev) => normalizeQueueOrders([...prev, removed]));
+        }
+      }
     });
-  }, []);
+  }, [workOrders, reportError]);
 
   const startWorkOrder = useCallback((id: string) => {
     updateWorkOrder(id, { status: 'In Progress', startedAt: new Date().toISOString() });
@@ -640,106 +679,150 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const newW: Worker = { ...w, id: genId('W'), initials: getInitials(w.name), jobsToday: 0 };
     setWorkers(prev => [...prev, newW]);
     supabase.from('workers').insert(workerToDb(newW)).then(({ error }) => {
-      if (error) console.error('Add worker error:', error.message);
+      if (error) {
+        reportError('Add worker', error.message);
+        setWorkers(prev => prev.filter(worker => worker.id !== newW.id));
+      }
     });
-  }, []);
+  }, [reportError]);
 
   const updateWorker = useCallback((id: string, updates: Partial<Worker>) => {
     setWorkers(prev => prev.map(w => {
       if (w.id !== id) return w;
+      const original = { ...w };
       const updated = { ...w, ...updates };
       if (updates.name) updated.initials = getInitials(updates.name);
       supabase.from('workers').update(workerToDb(updated)).eq('id', id).then(({ error }) => {
-        if (error) console.error('Update worker error:', error.message);
+        if (error) {
+          reportError('Update worker', error.message);
+          setWorkers(curr => curr.map(worker => (worker.id === id ? original : worker)));
+        }
       });
       return updated;
     }));
-  }, []);
+  }, [reportError]);
 
   const deleteWorker = useCallback((id: string) => {
+    const removed = workers.find(w => w.id === id);
     setWorkers(prev => prev.filter(w => w.id !== id));
     supabase.from('workers').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Delete worker error:', error.message);
+      if (error) {
+        reportError('Delete worker', error.message);
+        if (removed) setWorkers(prev => [...prev, removed]);
+      }
     });
-  }, []);
+  }, [workers, reportError]);
 
   const addAttendance = useCallback((a: Omit<AttendanceRecord, 'id'>) => {
     const newA: AttendanceRecord = { ...a, id: genId('ATT') };
     setAttendance(prev => [newA, ...prev]);
     supabase.from('attendance').insert(attendanceToDb(newA)).then(({ error }) => {
-      if (error) console.error('Add attendance error:', error.message);
+      if (error) {
+        reportError('Add attendance', error.message);
+        setAttendance(prev => prev.filter(att => att.id !== newA.id));
+      }
     });
-  }, []);
+  }, [reportError]);
 
   const updateAttendance = useCallback((id: string, updates: Partial<AttendanceRecord>) => {
     setAttendance(prev => prev.map(a => {
       if (a.id !== id) return a;
+      const original = { ...a };
       const updated = { ...a, ...updates };
       supabase.from('attendance').update(attendanceToDb(updated)).eq('id', id).then(({ error }) => {
-        if (error) console.error('Update attendance error:', error.message);
+        if (error) {
+          reportError('Update attendance', error.message);
+          setAttendance(curr => curr.map(att => (att.id === id ? original : att)));
+        }
       });
       return updated;
     }));
-  }, []);
+  }, [reportError]);
 
   const deleteAttendance = useCallback((id: string) => {
+    const removed = attendance.find(a => a.id === id);
     setAttendance(prev => prev.filter(a => a.id !== id));
     supabase.from('attendance').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Delete attendance error:', error.message);
+      if (error) {
+        reportError('Delete attendance', error.message);
+        if (removed) setAttendance(prev => [removed, ...prev]);
+      }
     });
-  }, []);
+  }, [attendance, reportError]);
 
   const addCommission = useCallback((c: Omit<CommissionRecord, 'id'>) => {
     const newC: CommissionRecord = { ...c, id: genId('COM') };
     setCommissions(prev => [newC, ...prev]);
     supabase.from('commissions').insert(commissionToDb(newC)).then(({ error }) => {
-      if (error) console.error('Add commission error:', error.message);
+      if (error) {
+        reportError('Add commission', error.message);
+        setCommissions(prev => prev.filter(com => com.id !== newC.id));
+      }
     });
-  }, []);
+  }, [reportError]);
 
   const updateCommission = useCallback((id: string, updates: Partial<CommissionRecord>) => {
     setCommissions(prev => prev.map(c => {
       if (c.id !== id) return c;
+      const original = { ...c };
       const updated = { ...c, ...updates };
       supabase.from('commissions').update(commissionToDb(updated)).eq('id', id).then(({ error }) => {
-        if (error) console.error('Update commission error:', error.message);
+        if (error) {
+          reportError('Update commission', error.message);
+          setCommissions(curr => curr.map(com => (com.id === id ? original : com)));
+        }
       });
       return updated;
     }));
-  }, []);
+  }, [reportError]);
 
   const deleteCommission = useCallback((id: string) => {
+    const removed = commissions.find(c => c.id === id);
     setCommissions(prev => prev.filter(c => c.id !== id));
     supabase.from('commissions').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Delete commission error:', error.message);
+      if (error) {
+        reportError('Delete commission', error.message);
+        if (removed) setCommissions(prev => [removed, ...prev]);
+      }
     });
-  }, []);
+  }, [commissions, reportError]);
 
   const addPricing = useCallback((p: Omit<PricingItem, 'id'>) => {
     const newP: PricingItem = { ...p, id: genId('PRC') };
     setPricing(prev => [...prev, newP]);
     supabase.from('pricing').insert(pricingToDb(newP)).then(({ error }) => {
-      if (error) console.error('Add pricing error:', error.message);
+      if (error) {
+        reportError('Add pricing', error.message);
+        setPricing(prev => prev.filter(item => item.id !== newP.id));
+      }
     });
-  }, []);
+  }, [reportError]);
 
   const updatePricing = useCallback((id: string, updates: Partial<PricingItem>) => {
     setPricing(prev => prev.map(p => {
       if (p.id !== id) return p;
+      const original = { ...p };
       const updated = { ...p, ...updates };
       supabase.from('pricing').update(pricingToDb(updated)).eq('id', id).then(({ error }) => {
-        if (error) console.error('Update pricing error:', error.message);
+        if (error) {
+          reportError('Update pricing', error.message);
+          setPricing(curr => curr.map(item => (item.id === id ? original : item)));
+        }
       });
       return updated;
     }));
-  }, []);
+  }, [reportError]);
 
   const deletePricing = useCallback((id: string) => {
+    const removed = pricing.find(p => p.id === id);
     setPricing(prev => prev.filter(p => p.id !== id));
     supabase.from('pricing').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Delete pricing error:', error.message);
+      if (error) {
+        reportError('Delete pricing', error.message);
+        if (removed) setPricing(prev => [...prev, removed]);
+      }
     });
-  }, []);
+  }, [pricing, reportError]);
 
   const addExpenditure = useCallback((item: Omit<ExpenditureItem, 'id'>) => {
     const newItem: ExpenditureItem = { ...item, id: genId('EXP') };
@@ -752,16 +835,23 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       category: newItem.category,
       notes: newItem.notes || '',
     }).then(({ error }) => {
-      if (error) console.error('Add expenditure error:', error.message);
+      if (error) {
+        reportError('Add expenditure', error.message);
+        setExpenditures(prev => prev.filter(exp => exp.id !== newItem.id));
+      }
     });
-  }, []);
+  }, [reportError]);
 
   const deleteExpenditure = useCallback((id: string) => {
+    const removed = expenditures.find(item => item.id === id);
     setExpenditures(prev => prev.filter(item => item.id !== id));
     supabase.from('expenditures').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Delete expenditure error:', error.message);
+      if (error) {
+        reportError('Delete expenditure', error.message);
+        if (removed) setExpenditures(prev => [removed, ...prev]);
+      }
     });
-  }, []);
+  }, [expenditures, reportError]);
 
   const saveUtilityOpening = useCallback(async ({
     utilityType,
@@ -789,13 +879,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.from('utility_logs').upsert(row, { onConflict: 'log_date,utility_type' });
 
     if (error) {
-      console.error('Save utility opening error:', error.message);
-      alert(error.message);
+      reportError('Save utility opening', error.message);
       return;
     }
 
     await loadUtilityLogs();
-  }, [loadUtilityLogs]);
+  }, [loadUtilityLogs, reportError]);
 
   const saveUtilityClosing = useCallback(async ({
     utilityType,
@@ -827,13 +916,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       .eq('utility_type', utilityType);
 
     if (error) {
-      console.error('Save utility closing error:', error.message);
-      alert(error.message);
+      reportError('Save utility closing', error.message);
       return;
     }
 
     await loadUtilityLogs();
-  }, [loadUtilityLogs]);
+  }, [loadUtilityLogs, reportError]);
 
   const getTodayRevenue = useCallback(() => {
     const todayStr = todayISO();
@@ -903,6 +991,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         pricing,
         utilityLogs,
         expenditures,
+        lastError,
+        loadError,
+        clearError,
         addWorkOrder,
         updateWorkOrder,
         deleteWorkOrder,

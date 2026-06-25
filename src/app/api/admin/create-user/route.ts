@@ -82,9 +82,11 @@ export async function POST(req: Request) {
       success: true,
       message: 'User created successfully.',
     });
-  } catch {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Create user API error:', message);
     return NextResponse.json(
-      { error: 'Something went wrong while creating user.' },
+      { error: `Something went wrong while creating user: ${message}` },
       { status: 500 }
     );
   }

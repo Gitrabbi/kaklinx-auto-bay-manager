@@ -8,6 +8,7 @@ export default function CustomerCertificationsManager() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     loadReviews();
@@ -35,7 +36,13 @@ export default function CustomerCertificationsManager() {
       .not('customer_certified_at', 'is', null)
       .order('customer_certified_at', { ascending: false });
 
-    if (!error) setReviews(data || []);
+    if (error) {
+      console.error('Load certifications error:', error.message);
+      setErrorMsg(`Failed to load certifications: ${error.message}`);
+    } else {
+      setErrorMsg('');
+      setReviews(data || []);
+    }
 
     setLoading(false);
   }
@@ -64,6 +71,11 @@ export default function CustomerCertificationsManager() {
 
   return (
     <div className="space-y-5">
+      {errorMsg && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
+          {errorMsg}
+        </div>
+      )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl border p-4">
           <p className="text-xs text-slate-500">Total Reviews</p>

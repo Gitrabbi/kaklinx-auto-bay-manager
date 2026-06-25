@@ -74,6 +74,7 @@ export default function WorkersManager() {
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [performance, setPerformance] = useState<Record<string, WorkerPerformance>>({});
+  const [perfError, setPerfError] = useState('');
 
   useEffect(() => {
     async function loadPerformance() {
@@ -83,8 +84,10 @@ export default function WorkersManager() {
 
       if (error) {
         console.error('Worker performance load error:', error.message);
+        setPerfError(`Failed to load performance data: ${error.message}`);
         return;
       }
+      setPerfError('');
 
       const mapped: Record<string, WorkerPerformance> = {};
       (data || []).forEach((row) => {
@@ -134,6 +137,11 @@ export default function WorkersManager() {
 
   return (
     <div className="space-y-4">
+      {perfError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
+          {perfError}
+        </div>
+      )}
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="relative flex-1 sm:w-64">

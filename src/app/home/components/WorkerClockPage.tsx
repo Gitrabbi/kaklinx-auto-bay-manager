@@ -102,8 +102,9 @@ export default function WorkerClockPage() {
           `You are ${Math.round(calculatedDistance)} meters away from the worksite. Clock-in is only allowed within ${worksite.allowed_radius_meters} meters.`
         );
       }
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Unable to access your location.');
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      setErrorMsg(`Location check failed: ${msg}`);
     }
 
     setLoading(false);
@@ -194,8 +195,9 @@ export default function WorkerClockPage() {
       setDistance(calculatedDistance);
       setLocationAllowed(true);
       setMessage('Clock-in successful.');
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Unable to access your location.');
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      setErrorMsg(`Clock-in failed: ${msg}`);
     }
 
     setLoading(false);
@@ -235,8 +237,9 @@ export default function WorkerClockPage() {
       setActiveLog(null);
       setClockOutReason('');
       setMessage('Clock-out successful.');
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Unable to access your location.');
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      setErrorMsg(`Clock-out failed: ${msg}`);
     }
 
     setLoading(false);
