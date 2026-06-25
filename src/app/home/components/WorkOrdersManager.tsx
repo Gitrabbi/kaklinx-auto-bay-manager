@@ -49,6 +49,7 @@ interface FormState {
   additionalServiceDescription: string;
   additionalServiceCost: string;
   discount: string;
+  isVip: boolean;
 }
 
 const emptyForm: FormState = {
@@ -61,6 +62,7 @@ const emptyForm: FormState = {
   additionalServiceDescription: '',
   additionalServiceCost: '',
   discount: '',
+  isVip: false,
 };
 
 export default function WorkOrdersManager() {
@@ -259,6 +261,7 @@ export default function WorkOrdersManager() {
       additionalServiceDescription: (wo as any).additionalServiceDescription || '',
       additionalServiceCost: (wo as any).additionalServiceCost?.toString() || '',
       discount: (wo as any).discount?.toString() || '',
+      isVip: wo.isVip || false,
     });
 
     setEditId(wo.id);
@@ -283,6 +286,7 @@ export default function WorkOrdersManager() {
       status: 'Pending' as WorkOrderStatus,
       targetMinutes: calculateRecommendedMinutes(form.vehicleType, form.services),
       extensionMinutes: 0,
+      isVip: form.isVip,
     };
 
     if (editId) {
@@ -476,7 +480,7 @@ export default function WorkOrdersManager() {
           </div>
         ) : (
           <>
-          <div className="block lg:hidden p-3 space-y-3">{filtered.map((wo) => (<div key={wo.id} onClick={() => setSelectedOrder(wo)} className="bg-white rounded-xl border p-4 shadow-sm cursor-pointer"><div className="flex justify-between"><div><div className="inline-flex px-2 py-1 mb-2 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">{wo.queueNumber || 'Unqueued'}</div><h4 className="font-semibold">{wo.plate}</h4><p className="text-xs text-gray-500">{wo.vehicleType}</p><p className="text-xs text-blue-600 mt-1">Position #{wo.queuePosition || '-'}</p></div><span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusConfig[wo.status].className}`}>{wo.status}</span></div><p className="mt-2 text-xs text-gray-500">{wo.services.join(', ')}</p><div className="flex justify-between mt-3"><span className="font-semibold">GH₵ {Number(wo.totalAmount || 0).toFixed(2)}</span><span className="text-blue-600 text-xs">Tap for actions →</span></div></div>))}</div><div className="hidden lg:block overflow-x-auto">
+          <div className="block lg:hidden p-3 space-y-3">{filtered.map((wo) => (<div key={wo.id} onClick={() => setSelectedOrder(wo)} className="bg-white rounded-xl border p-4 shadow-sm cursor-pointer"><div className="flex justify-between"><div><div className="flex items-center gap-2 mb-2"><div className="inline-flex px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">{wo.queueNumber || 'Unqueued'}</div>{wo.isVip && <span className="inline-flex px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">⭐ VIP</span>}</div><h4 className="font-semibold">{wo.plate}</h4><p className="text-xs text-gray-500">{wo.vehicleType}</p><p className="text-xs text-blue-600 mt-1">Position #{wo.queuePosition || '-'}</p></div><span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusConfig[wo.status].className}`}>{wo.status}</span></div><p className="mt-2 text-xs text-gray-500">{wo.services.join(', ')}</p><div className="flex justify-between mt-3"><span className="font-semibold">GH₵ {Number(wo.totalAmount || 0).toFixed(2)}</span><span className="text-blue-600 text-xs">Tap for actions →</span></div></div>))}</div><div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left">
@@ -523,7 +527,12 @@ export default function WorkOrdersManager() {
                           {wo.queueNumber || '—'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-semibold">{wo.plate}</td>
+                      <td className="px-4 py-3 font-semibold">
+                        <span className="flex items-center gap-2">
+                          {wo.plate}
+                          {wo.isVip && <span className="inline-flex px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-[10px] font-bold">VIP</span>}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-xs">{wo.vehicleType}</td>
                       <td className="px-4 py-3 text-xs">{wo.services?.join(', ') || '—'}</td>
                       <td className="px-4 py-3">
@@ -757,6 +766,20 @@ export default function WorkOrdersManager() {
                     className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2"
                     style={{ borderColor: 'hsl(210 18% 89%)' }}
                   />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.isVip}
+                      onChange={(e) => setForm((f) => ({ ...f, isVip: e.target.checked }))}
+                      className="w-4 h-4 rounded accent-yellow-500"
+                    />
+                    <span className="text-sm font-semibold" style={{ color: 'hsl(215 25% 12%)' }}>
+                      ⭐ VIP Customer
+                    </span>
+                  </label>
                 </div>
 
                 <div>
