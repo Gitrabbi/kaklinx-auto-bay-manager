@@ -232,28 +232,24 @@ function normalizeQueueOrders(orders: WorkOrder[]) {
   // Vehicles ahead = count of active orders sorted ahead of you.
   // Queue Number and Position are unified: both = 1-indexed rank among actives.
   // As cars complete and drop out, everyone behind moves up by one.
-  const inProgressOrders = todaysOrders.filter(
-  (wo) => wo.status === 'In Progress'
-);
-const pendingOrders = todaysOrders.filter(
-  (wo) => wo.status === 'Pending'
-);
+  const inProgressOrders = todaysOrders.filter((wo) => wo.status === 'In Progress');
+  const pendingOrders = todaysOrders.filter((wo) => wo.status === 'Pending');
 
-const queueNumberById = new Map<string, string>();
-const queuePositionById = new Map<string, number>();
+  const queueNumberById = new Map<string, string>();
+  const queuePositionById = new Map<string, number>();
 
-// In Progress orders = position 0 (now serving, no vehicles ahead)
-inProgressOrders.forEach((wo) => {
-  queueNumberById.set(wo.id, wo.queueNumber || '');
-  queuePositionById.set(wo.id, 0);
-});
+  // In Progress orders = position 0 (now serving, no vehicles ahead)
+  inProgressOrders.forEach((wo) => {
+    queueNumberById.set(wo.id, wo.queueNumber || '');
+    queuePositionById.set(wo.id, 0);
+  });
 
-// Pending orders = position 1, 2, 3... (vehicles ahead = position - 1)
-pendingOrders.forEach((wo, index) => {
-  const rank = index + 1;
-  queueNumberById.set(wo.id, `A-${String(rank).padStart(3, '0')}`);
-  queuePositionById.set(wo.id, rank);
-});
+  // Pending orders = position 1, 2, 3... (vehicles ahead = position - 1)
+  pendingOrders.forEach((wo, index) => {
+    const rank = index + 1;
+    queueNumberById.set(wo.id, `A-${String(rank).padStart(3, '0')}`);
+    queuePositionById.set(wo.id, rank);
+  });
 
   return orders.map((wo) => {
     if (getQueueDate(wo) !== queueDate) return wo;
