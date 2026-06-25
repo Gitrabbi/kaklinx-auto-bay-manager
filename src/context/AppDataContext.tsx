@@ -1,6 +1,7 @@
 'use client';
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { todayISO } from '@/lib/dateUtils';
 
 export type WorkOrderStatus = 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
 export type WorkerStatus = 'active' | 'break' | 'offline';
@@ -194,9 +195,7 @@ function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
-function todayISO() {
-  return new Date().toISOString().split('T')[0];
-}
+
 
 function getQueueDate(value: Pick<WorkOrder, 'createdAt' | 'queueDate'>) {
   return value.queueDate || value.createdAt.slice(0, 10) || todayISO();

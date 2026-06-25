@@ -5,6 +5,7 @@ import {
   Cog6ToothIcon, MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import { useAppData, PricingItem, VEHICLE_TYPES, SERVICE_TYPES } from '../../../context/AppDataContext';
+import { formatCurrency } from '@/lib/formatUtils';
 
 interface FormState {
   vehicleType: string;
@@ -121,7 +122,7 @@ export default function PricingManager() {
                   <tr key={p.id} className="table-row-hover transition-colors">
                     <td className="px-4 py-3 font-medium text-sm" style={{ color: 'hsl(215 25% 12%)' }}>{p.vehicleType}</td>
                     <td className="px-4 py-3 text-sm" style={{ color: 'hsl(215 10% 48%)' }}>{p.serviceType}</td>
-                    <td className="px-4 py-3 text-sm font-bold" style={{ color: 'hsl(205 78% 42%)' }}>GH₵ {p.price.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm font-bold" style={{ color: 'hsl(205 78% 42%)' }}>{formatCurrency(p.price)}</td>
                     <td className="px-4 py-3 text-sm" style={{ color: 'hsl(215 25% 12%)' }}>{p.recommendedMinutes || 0}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">

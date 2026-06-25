@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { todayISO } from '@/lib/dateUtils';
 
 type WorkOrder = {
   id: string;
@@ -20,10 +21,6 @@ type WorkOrder = {
   priority_position: number | null;
   queue_date: string | null;
 };
-
-function todayISO() {
-  return new Date().toISOString().split('T')[0];
-}
 
 export default function QueueTVPage() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);

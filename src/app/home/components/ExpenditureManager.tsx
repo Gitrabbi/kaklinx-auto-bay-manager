@@ -2,10 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { useAppData } from '../../../context/AppDataContext';
-
-function todayISO() {
-  return new Date().toISOString().split('T')[0];
-}
+import { todayISO } from '@/lib/dateUtils';
+import { formatCurrency } from '@/lib/formatUtils';
 
 export default function ExpenditureManager() {
   const { expenditures, addExpenditure, deleteExpenditure, getTodayExpenditure, getTodayRevenue } = useAppData();
@@ -47,16 +45,16 @@ export default function ExpenditureManager() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Today&apos;s Revenue</p>
-          <h2 className="text-2xl font-bold mt-2">GH₵ {revenue.toFixed(2)}</h2>
+          <h2 className="text-2xl font-bold mt-2">{formatCurrency(revenue)}</h2>
         </div>
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Today&apos;s Expenditure</p>
-          <h2 className="text-2xl font-bold mt-2">GH₵ {totalExpenditure.toFixed(2)}</h2>
+          <h2 className="text-2xl font-bold mt-2">{formatCurrency(totalExpenditure)}</h2>
         </div>
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Net Profit / Loss</p>
           <h2 className={`text-2xl font-bold mt-2 ${net < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-            GH₵ {net.toFixed(2)}
+            {formatCurrency(net)}
           </h2>
         </div>
       </div>
@@ -100,7 +98,7 @@ export default function ExpenditureManager() {
                     <td className="py-3 font-medium">{item.description}</td>
                     <td>{item.category}</td>
                     <td>{item.date}</td>
-                    <td className="text-right font-semibold">GH₵ {Number(item.amount || 0).toFixed(2)}</td>
+                    <td className="text-right font-semibold">{formatCurrency(Number(item.amount || 0))}</td>
                     <td className="text-right">
                       <button type="button" className="text-red-600 text-xs font-semibold" onClick={() => deleteExpenditure(item.id)}>Delete</button>
                     </td>

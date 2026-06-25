@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { PlusIcon, PencilSquareIcon, TrashIcon, XMarkIcon, CurrencyDollarIcon, TrophyIcon,  } from '@heroicons/react/24/outline';
 import { useAppData, CommissionRecord } from '../../../context/AppDataContext';
+import { todayISO } from '@/lib/dateUtils';
+import { formatCurrency } from '@/lib/formatUtils';
 
 interface FormState {
   workerId: string;
@@ -10,7 +12,7 @@ interface FormState {
   rate: string;
 }
 
-const today = new Date().toISOString().split('T')[0];
+const today = todayISO();
 
 const emptyForm: FormState = { workerId: '', date: today, jobsCompleted: '', rate: '15' };
 
@@ -80,7 +82,7 @@ export default function CommissionsManager() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border p-4" style={{ borderColor: 'hsl(210 18% 89%)' }}>
           <p className="text-xs font-medium mb-1" style={{ color: 'hsl(215 10% 48%)' }}>Total Payout</p>
-          <p className="text-2xl font-bold" style={{ color: 'hsl(205 78% 42%)' }}>GH₵ {totalPayout.toFixed(2)}</p>
+          <p className="text-2xl font-bold" style={{ color: 'hsl(205 78% 42%)' }}>{formatCurrency(totalPayout)}</p>
         </div>
         <div className="bg-white rounded-xl border p-4" style={{ borderColor: 'hsl(210 18% 89%)' }}>
           <p className="text-xs font-medium mb-1" style={{ color: 'hsl(215 10% 48%)' }}>Total Records</p>
@@ -150,7 +152,7 @@ export default function CommissionsManager() {
                     <td className="px-4 py-3 text-xs" style={{ color: 'hsl(215 10% 48%)' }}>{c.date}</td>
                     <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'hsl(215 25% 12%)' }}>{c.jobsCompleted}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: 'hsl(215 10% 48%)' }}>{c.rate}%</td>
-                    <td className="px-4 py-3 text-sm font-bold" style={{ color: 'hsl(205 78% 42%)' }}>GH₵ {c.totalEarned.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm font-bold" style={{ color: 'hsl(205 78% 42%)' }}>{formatCurrency(c.totalEarned)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-blue-50 transition-colors">
@@ -211,7 +213,7 @@ export default function CommissionsManager() {
                 <div className="p-3 rounded-lg" style={{ backgroundColor: 'hsla(205,78%,42%,0.06)' }}>
                   <p className="text-xs" style={{ color: 'hsl(215 10% 48%)' }}>Estimated Earnings</p>
                   <p className="text-lg font-bold" style={{ color: 'hsl(205 78% 42%)' }}>
-                    GH₵ {calcEarned(parseInt(form.jobsCompleted) || 0, parseFloat(form.rate) || 0).toFixed(2)}
+                    {formatCurrency(calcEarned(parseInt(form.jobsCompleted) || 0, parseFloat(form.rate) || 0))}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: 'hsl(215 10% 48%)' }}>Based on avg. GH₵ 40/job</p>
                 </div>

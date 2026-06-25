@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { PlusIcon, PencilSquareIcon, TrashIcon, XMarkIcon, UsersIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useAppData, Worker, WorkerStatus } from '../../../context/AppDataContext';
 import { supabase } from '@/lib/supabaseClient';
+import { todayISO } from '@/lib/dateUtils';
 
 interface FormState {
   name: string;
@@ -27,7 +28,7 @@ interface WorkerPerformance {
 }
 
 const emptyForm: FormState = {
-  name: '', phone: '', role: 'Car Washer', status: 'active', commissionRate: '15', joinDate: new Date().toISOString().split('T')[0],
+  name: '', phone: '', role: 'Car Washer', status: 'active', commissionRate: '15', joinDate: todayISO(),
 };
 
 const statusColors: Record<WorkerStatus, { bg: string; text: string; label: string }> = {

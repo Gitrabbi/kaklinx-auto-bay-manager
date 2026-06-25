@@ -2,10 +2,8 @@
 
 import React from 'react';
 import { useAppData } from '../../../context/AppDataContext';
-
-function todayISO() {
-  return new Date().toISOString().split('T')[0];
-}
+import { todayISO } from '@/lib/dateUtils';
+import { formatCurrency } from '@/lib/formatUtils';
 
 export default function UtilitySummaryCards() {
   const { utilityLogs, workOrders } = useAppData();
@@ -27,10 +25,10 @@ export default function UtilitySummaryCards() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
       <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Electricity Today</p><h2 className="text-xl font-bold mt-2">{electricityUsed.toFixed(2)} kWh</h2></div>
-      <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Electricity Cost</p><h2 className="text-xl font-bold mt-2">GH₵ {electricityCost.toFixed(2)}</h2></div>
+      <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Electricity Cost</p><h2 className="text-xl font-bold mt-2">{formatCurrency(electricityCost)}</h2></div>
       <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Water Today</p><h2 className="text-xl font-bold mt-2">{waterUsed.toFixed(2)} L</h2></div>
-      <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Water Cost</p><h2 className="text-xl font-bold mt-2">GH₵ {waterCost.toFixed(2)}</h2></div>
-      <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Utility Cost / Order</p><h2 className="text-xl font-bold mt-2">GH₵ {costPerOrder.toFixed(2)}</h2></div>
+      <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Water Cost</p><h2 className="text-xl font-bold mt-2">{formatCurrency(waterCost)}</h2></div>
+      <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Utility Cost / Order</p><h2 className="text-xl font-bold mt-2">{formatCurrency(costPerOrder)}</h2></div>
     </div>
   );
 }

@@ -4,6 +4,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowDownTrayIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { useAppData } from '../../../context/AppDataContext';
 import { supabase } from '@/lib/supabaseClient';
+import { formatDate, formatTime, calculateHours } from '@/lib/dateUtils';
+import { formatCurrency } from '@/lib/formatUtils';
+import { toCSV, downloadCSV } from '@/lib/csvUtils';
 
 type ReportType =
   | 'work-orders'
@@ -46,41 +49,7 @@ const reportTypes: { id: ReportType; label: string; description: string }[] = [
   },
 ];
 
-function toCSV(headers: string[], rows: string[][]): string {
-  const escape = (v: string) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  return [headers.map(escape).join(','), ...rows.map((r) => r.map(escape).join(','))].join('\n');
-}
 
-function downloadCSV(filename: string, content: string) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function formatDate(value?: string) {
-  if (!value) return '';
-  return new Date(value).toISOString().split('T')[0];
-}
-
-function formatTime(value?: string) {
-  if (!value) return '';
-  return new Date(value).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function calculateHours(start?: string, end?: string) {
-  if (!start || !end) return 0;
-  const s = new Date(start).getTime();
-  const e = new Date(end).getTime();
-  if (e <= s) return 0;
-  return (e - s) / (1000 * 60 * 60);
-}
 
 function parseDurationToMinutes(duration?: string) {
   if (!duration) return 0;
@@ -350,8 +319,8 @@ export default function ReportsExport() {
           String(row.assignedJobs),
           String(row.completedJobs),
           row.averageMinutes.toFixed(1),
-          `GH₵ ${row.totalRevenueContributed.toFixed(2)}`,
-          `GH₵ ${row.totalCommission.toFixed(2)}`,
+          formatCurrency(row.totalRevenueContributed),
+          formatCurrency(row.totalCommission),
           String(row.attendanceCount),
           row.activeAttendance ? 'Yes' : 'No',
         ]);
@@ -430,7 +399,7 @@ export default function ReportsExport() {
             c.date,
             String(c.jobsCompleted),
             `${c.rate}%`,
-            `GH₵ ${c.totalEarned.toFixed(2)}`,
+            formatCurrency(c.totalEarned),
           ]);
 
         downloadCSV(`commissions-${ts}.csv`, toCSV(headers, rows));
@@ -470,12 +439,12 @@ export default function ReportsExport() {
           },
           {
             label: 'Total Revenue',
-            value: `GH₵ ${totalRevenue.toFixed(2)}`,
+            value: formatCurrency(totalRevenue),
             color: 'hsl(25 95% 53%)',
           },
           {
             label: 'Total Commissions',
-            value: `GH₵ ${totalCommissions.toFixed(2)}`,
+            value: formatCurrency(totalCommissions),
             color: 'hsl(280 60% 50%)',
           },
         ].map((s) => (
@@ -643,7 +612,7 @@ export default function ReportsExport() {
           {revenueByVehicle.map(([vehicle, amount]) => (
             <div key={String(vehicle)} className="flex justify-between py-2 border-b">
               <span>{String(vehicle)}</span>
-              <span className="font-semibold">GH₵ {Number(amount).toFixed(2)}</span>
+              <span className="font-semibold">{formatCurrency(Number(amount))}</span>
             </div>
           ))}
         </div>
@@ -691,7 +660,7 @@ export default function ReportsExport() {
             {
               label: 'Commission Records',
               count: commissions.length,
-              sub: `GH₵ ${totalCommissions.toFixed(2)} total`,
+              sub: `${formatCurrency(totalCommissions)} total`,
             },
             {
               label: 'Pricing Entries',
