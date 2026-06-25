@@ -7,6 +7,7 @@ import type { UserProfile } from '@/lib/authTypes';
 export function useUserProfile() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadProfile() {
@@ -18,6 +19,7 @@ export function useUserProfile() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
+        if (userError) setError(`Auth error: ${userError.message}`);
         setProfile(null);
         setLoading(false);
         return;
@@ -31,8 +33,10 @@ export function useUserProfile() {
 
       if (error) {
         console.error('Profile load error:', error.message);
+        setError(`Profile load error: ${error.message}`);
         setProfile(null);
       } else {
+        setError(null);
         setProfile(data);
       }
 
@@ -42,5 +46,5 @@ export function useUserProfile() {
     loadProfile();
   }, []);
 
-  return { profile, loading };
+  return { profile, loading, error };
 }

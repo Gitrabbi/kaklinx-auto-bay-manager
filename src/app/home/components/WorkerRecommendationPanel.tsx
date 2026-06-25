@@ -44,6 +44,7 @@ export default function WorkerRecommendationPanel({
   onSelectWorker,
 }: Props) {
   const [performance, setPerformance] = useState<Record<string, WorkerPerformance>>({});
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     async function loadPerformance() {
@@ -53,8 +54,10 @@ export default function WorkerRecommendationPanel({
 
       if (error) {
         console.error('Worker recommendation load error:', error.message);
+        setLoadError(`Failed to load worker performance: ${error.message}`);
         return;
       }
+      setLoadError('');
 
       const mapped: Record<string, WorkerPerformance> = {};
       (data || []).forEach((row) => {
@@ -119,6 +122,15 @@ export default function WorkerRecommendationPanel({
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, 3);
   }, [workers, performance, selectedServices]);
+
+  if (loadError) {
+    return (
+      <div className="rounded-lg border border-red-200 p-3 bg-red-50">
+        <p className="text-xs font-semibold text-red-700">AI Worker Recommendation</p>
+        <p className="text-xs text-red-600 mt-1">{loadError}</p>
+      </div>
+    );
+  }
 
   if (selectedServices.length === 0) {
     return (
