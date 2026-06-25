@@ -1,5 +1,12 @@
 'use client';
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
 export type WorkOrderStatus = 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
@@ -8,16 +15,32 @@ export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half Day';
 export type UtilityType = 'electricity' | 'water';
 
 export const VEHICLE_TYPES = [
-  'Saloon - Small', 'Saloon - Medium', 'Saloon - Large',
-  'SUV - Medium', 'SUV - Large', 'SUV - Extra Large',
-  'Pickup', 'Pickup Truck', 'Family Van', 'Van', '32 Seater Bus',
-  'KIA Bongo', 'KIA Mighty', 'KIA Rhino',
-  'Motorcycle', 'Motor Tricycle',
+  'Saloon - Small',
+  'Saloon - Medium',
+  'Saloon - Large',
+  'SUV - Medium',
+  'SUV - Large',
+  'SUV - Extra Large',
+  'Pickup',
+  'Pickup Truck',
+  'Family Van',
+  'Van',
+  '32 Seater Bus',
+  'KIA Bongo',
+  'KIA Mighty',
+  'KIA Rhino',
+  'Motorcycle',
+  'Motor Tricycle',
 ];
 
 export const SERVICE_TYPES = [
-  'Body Wash', 'Under Wash', 'Engine Wash', 'Vacuuming',
-  'Water Blowing', 'Interior + Vacuuming', 'Interior Premium + Vacuuming + Body Wash',
+  'Body Wash',
+  'Under Wash',
+  'Engine Wash',
+  'Vacuuming',
+  'Water Blowing',
+  'Interior + Vacuuming',
+  'Interior Premium + Vacuuming + Body Wash',
 ];
 
 export interface WorkOrder {
@@ -191,11 +214,17 @@ function genId(prefix: string) {
 }
 
 function getInitials(name: string) {
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 function todayISO() {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function getQueueDate(value: Pick<WorkOrder, 'createdAt' | 'queueDate'>) {
@@ -232,28 +261,24 @@ function normalizeQueueOrders(orders: WorkOrder[]) {
   // Vehicles ahead = count of active orders sorted ahead of you.
   // Queue Number and Position are unified: both = 1-indexed rank among actives.
   // As cars complete and drop out, everyone behind moves up by one.
-  const inProgressOrders = todaysOrders.filter(
-  (wo) => wo.status === 'In Progress'
-);
-const pendingOrders = todaysOrders.filter(
-  (wo) => wo.status === 'Pending'
-);
+  const inProgressOrders = todaysOrders.filter((wo) => wo.status === 'In Progress');
+  const pendingOrders = todaysOrders.filter((wo) => wo.status === 'Pending');
 
-const queueNumberById = new Map<string, string>();
-const queuePositionById = new Map<string, number>();
+  const queueNumberById = new Map<string, string>();
+  const queuePositionById = new Map<string, number>();
 
-// In Progress orders = position 0 (now serving, no vehicles ahead)
-inProgressOrders.forEach((wo) => {
-  queueNumberById.set(wo.id, wo.queueNumber || '');
-  queuePositionById.set(wo.id, 0);
-});
+  // In Progress orders = position 0 (now serving, no vehicles ahead)
+  inProgressOrders.forEach((wo) => {
+    queueNumberById.set(wo.id, wo.queueNumber || '');
+    queuePositionById.set(wo.id, 0);
+  });
 
-// Pending orders = position 1, 2, 3... (vehicles ahead = position - 1)
-pendingOrders.forEach((wo, index) => {
-  const rank = index + 1;
-  queueNumberById.set(wo.id, `A-${String(rank).padStart(3, '0')}`);
-  queuePositionById.set(wo.id, rank);
-});
+  // Pending orders = position 1, 2, 3... (vehicles ahead = position - 1)
+  pendingOrders.forEach((wo, index) => {
+    const rank = index + 1;
+    queueNumberById.set(wo.id, `A-${String(rank).padStart(3, '0')}`);
+    queuePositionById.set(wo.id, rank);
+  });
 
   return orders.map((wo) => {
     if (getQueueDate(wo) !== queueDate) return wo;
@@ -474,7 +499,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [expenditures, setExpenditures] = useState<ExpenditureItem[]>([]);
 
   const loadUtilityLogs = useCallback(async () => {
-    const { data, error } = await supabase.from('utility_logs').select('*').order('log_date', { ascending: false });
+    const { data, error } = await supabase
+      .from('utility_logs')
+      .select('*')
+      .order('log_date', { ascending: false });
     if (error) {
       console.error('Load utility logs error:', error.message);
       return;
@@ -484,7 +512,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const loadAllData = useCallback(async () => {
     const [
-      workersRes, pricingRes, workOrdersRes, attendanceRes, commissionsRes, utilityLogsRes, expendituresRes,
+      workersRes,
+      pricingRes,
+      workOrdersRes,
+      attendanceRes,
+      commissionsRes,
+      utilityLogsRes,
+      expendituresRes,
     ] = await Promise.all([
       supabase.from('workers').select('*').order('name'),
       supabase.from('pricing').select('*').order('vehicle_type'),
@@ -508,8 +542,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         const original = workOrdersRes.data!.find((row: any) => row.id === wo.id);
         if (
           original &&
-          (original.queue_position !== wo.queuePosition ||
-            original.queue_number !== wo.queueNumber)
+          (original.queue_position !== wo.queuePosition || original.queue_number !== wo.queueNumber)
         ) {
           supabase
             .from('work_orders')
@@ -528,14 +561,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (commissionsRes.data) setCommissions(commissionsRes.data.map(dbToCommission));
     if (utilityLogsRes.data) setUtilityLogs(utilityLogsRes.data.map(dbToUtilityLog));
     if (expendituresRes.data) {
-      setExpenditures(expendituresRes.data.map((row: any) => ({
-        id: row.id,
-        date: row.date,
-        description: row.description,
-        amount: Number(row.amount || 0),
-        category: row.category || 'Other',
-        notes: row.notes || '',
-      })));
+      setExpenditures(
+        expendituresRes.data.map((row: any) => ({
+          id: row.id,
+          date: row.date,
+          description: row.description,
+          amount: Number(row.amount || 0),
+          category: row.category || 'Other',
+          notes: row.notes || '',
+        }))
+      );
     }
 
     const firstError =
@@ -554,35 +589,41 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     loadAllData();
   }, [loadAllData]);
 
-  const addWorkOrder = useCallback((wo: Omit<WorkOrder, 'id' | 'createdAt'>): WorkOrder => {
-    const id = genId('WO');
-    const createdAt = new Date().toISOString();
-    const queueDate = todayISO();
+  const addWorkOrder = useCallback(
+    (wo: Omit<WorkOrder, 'id' | 'createdAt'>): WorkOrder => {
+      const id = genId('WO');
+      const createdAt = new Date().toISOString();
+      const queueDate = todayISO();
 
-    const provisional: WorkOrder = {
-      ...wo,
-      source: wo.source || 'walk_in',
-      isVip: wo.isVip || false,
-      bayNumber: wo.bayNumber || undefined,
-      priorityPosition: wo.priorityPosition || undefined,
-      queueNumber: '',
-      queuePosition: 0,
-      queueDate,
-      id,
-      createdAt,
-    };
+      const provisional: WorkOrder = {
+        ...wo,
+        source: wo.source || 'walk_in',
+        isVip: wo.isVip || false,
+        bayNumber: wo.bayNumber || undefined,
+        priorityPosition: wo.priorityPosition || undefined,
+        queueNumber: '',
+        queuePosition: 0,
+        queueDate,
+        id,
+        createdAt,
+      };
 
-    // Compute normalized list eagerly so the DB insert carries the
-    // correct queueNumber + queuePosition (1-based rank among actives).
-    const normalizedList = normalizeQueueOrders([provisional, ...workOrders]);
-    const newWO = normalizedList.find((w) => w.id === id)!;
+      // Compute normalized list eagerly so the DB insert carries the
+      // correct queueNumber + queuePosition (1-based rank among actives).
+      const normalizedList = normalizeQueueOrders([provisional, ...workOrders]);
+      const newWO = normalizedList.find((w) => w.id === id)!;
 
-    setWorkOrders(normalizedList);
-    supabase.from('work_orders').insert(workOrderToDb(newWO)).then(({ error }) => {
-      if (error) console.error('Add work order error:', error.message);
-    });
-    return newWO;
-  }, [workOrders]);
+      setWorkOrders(normalizedList);
+      supabase
+        .from('work_orders')
+        .insert(workOrderToDb(newWO))
+        .then(({ error }) => {
+          if (error) console.error('Add work order error:', error.message);
+        });
+      return newWO;
+    },
+    [workOrders]
+  );
 
   const updateWorkOrder = useCallback((id: string, updates: Partial<WorkOrder>) => {
     setWorkOrders((prev) => {
@@ -595,273 +636,404 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       const updatedOrder = normalized.find((wo) => wo.id === id);
 
       if (updatedOrder) {
-        supabase.from('work_orders').update(workOrderToDb(updatedOrder)).eq('id', id).then(({ error }) => {
-          if (error) console.error('Update work order error:', error.message);
-        });
+        supabase
+          .from('work_orders')
+          .update(workOrderToDb(updatedOrder))
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) console.error('Update work order error:', error.message);
+          });
       }
+
+      // Persist renumbered queue positions for all other affected orders
+      // so queue-tv and other DB-reading views stay in sync.
+      normalized.forEach((wo) => {
+        if (wo.id === id) return;
+        const before = prev.find((p) => p.id === wo.id);
+        if (
+          before &&
+          (before.queueNumber !== wo.queueNumber || before.queuePosition !== wo.queuePosition)
+        ) {
+          supabase
+            .from('work_orders')
+            .update({ queue_number: wo.queueNumber, queue_position: wo.queuePosition })
+            .eq('id', wo.id)
+            .then(({ error }) => {
+              if (error) console.error('Queue sync error:', error.message);
+            });
+        }
+      });
 
       return normalized;
     });
   }, []);
 
   const deleteWorkOrder = useCallback((id: string) => {
-    setWorkOrders((prev) => normalizeQueueOrders(prev.filter((wo) => wo.id !== id)));
-    supabase.from('work_orders').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Delete work order error:', error.message);
+    setWorkOrders((prev) => {
+      const remaining = prev.filter((wo) => wo.id !== id);
+      const normalized = normalizeQueueOrders(remaining);
+
+      // Persist renumbered queue positions for affected orders
+      normalized.forEach((wo) => {
+        const before = remaining.find((p) => p.id === wo.id);
+        if (
+          before &&
+          (before.queueNumber !== wo.queueNumber || before.queuePosition !== wo.queuePosition)
+        ) {
+          supabase
+            .from('work_orders')
+            .update({ queue_number: wo.queueNumber, queue_position: wo.queuePosition })
+            .eq('id', wo.id)
+            .then(({ error }) => {
+              if (error) console.error('Queue sync error:', error.message);
+            });
+        }
+      });
+
+      return normalized;
     });
+    supabase
+      .from('work_orders')
+      .delete()
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Delete work order error:', error.message);
+      });
   }, []);
 
-  const startWorkOrder = useCallback((id: string) => {
-    updateWorkOrder(id, { status: 'In Progress', startedAt: new Date().toISOString() });
-  }, [updateWorkOrder]);
+  const startWorkOrder = useCallback(
+    (id: string) => {
+      updateWorkOrder(id, { status: 'In Progress', startedAt: new Date().toISOString() });
+    },
+    [updateWorkOrder]
+  );
 
-  const completeWorkOrder = useCallback((id: string) => {
-    const wo = workOrders.find(w => w.id === id);
-    if (!wo) return;
+  const completeWorkOrder = useCallback(
+    (id: string) => {
+      const wo = workOrders.find((w) => w.id === id);
+      if (!wo) return;
 
-    const completedAt = new Date().toISOString();
-    let duration = '';
+      const completedAt = new Date().toISOString();
+      let duration = '';
 
-    if (wo.startedAt) {
-      const ms = new Date(completedAt).getTime() - new Date(wo.startedAt).getTime();
-      const mins = Math.floor(ms / 60000);
-      duration = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
-    }
+      if (wo.startedAt) {
+        const ms = new Date(completedAt).getTime() - new Date(wo.startedAt).getTime();
+        const mins = Math.floor(ms / 60000);
+        duration = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+      }
 
-    updateWorkOrder(id, { status: 'Completed', completedAt, duration, closureStatus: 'awaiting_customer' });
+      updateWorkOrder(id, {
+        status: 'Completed',
+        completedAt,
+        duration,
+        closureStatus: 'awaiting_customer',
+      });
 
-    wo.assignedWorkers.forEach(wid => {
-      const worker = workers.find(w => w.id === wid);
-      if (worker) updateWorker(wid, { jobsToday: worker.jobsToday + 1 });
-    });
-  }, [workOrders, workers, updateWorkOrder]);
+      wo.assignedWorkers.forEach((wid) => {
+        const worker = workers.find((w) => w.id === wid);
+        if (worker) updateWorker(wid, { jobsToday: worker.jobsToday + 1 });
+      });
+    },
+    [workOrders, workers, updateWorkOrder]
+  );
 
   const addWorker = useCallback((w: Omit<Worker, 'id' | 'initials' | 'jobsToday'>) => {
     const newW: Worker = { ...w, id: genId('W'), initials: getInitials(w.name), jobsToday: 0 };
-    setWorkers(prev => [...prev, newW]);
-    supabase.from('workers').insert(workerToDb(newW)).then(({ error }) => {
-      if (error) console.error('Add worker error:', error.message);
-    });
+    setWorkers((prev) => [...prev, newW]);
+    supabase
+      .from('workers')
+      .insert(workerToDb(newW))
+      .then(({ error }) => {
+        if (error) console.error('Add worker error:', error.message);
+      });
   }, []);
 
   const updateWorker = useCallback((id: string, updates: Partial<Worker>) => {
-    setWorkers(prev => prev.map(w => {
-      if (w.id !== id) return w;
-      const updated = { ...w, ...updates };
-      if (updates.name) updated.initials = getInitials(updates.name);
-      supabase.from('workers').update(workerToDb(updated)).eq('id', id).then(({ error }) => {
-        if (error) console.error('Update worker error:', error.message);
-      });
-      return updated;
-    }));
+    setWorkers((prev) =>
+      prev.map((w) => {
+        if (w.id !== id) return w;
+        const updated = { ...w, ...updates };
+        if (updates.name) updated.initials = getInitials(updates.name);
+        supabase
+          .from('workers')
+          .update(workerToDb(updated))
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) console.error('Update worker error:', error.message);
+          });
+        return updated;
+      })
+    );
   }, []);
 
   const deleteWorker = useCallback((id: string) => {
-    setWorkers(prev => prev.filter(w => w.id !== id));
-    supabase.from('workers').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Delete worker error:', error.message);
-    });
+    setWorkers((prev) => prev.filter((w) => w.id !== id));
+    supabase
+      .from('workers')
+      .delete()
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Delete worker error:', error.message);
+      });
   }, []);
 
   const addAttendance = useCallback((a: Omit<AttendanceRecord, 'id'>) => {
     const newA: AttendanceRecord = { ...a, id: genId('ATT') };
-    setAttendance(prev => [newA, ...prev]);
-    supabase.from('attendance').insert(attendanceToDb(newA)).then(({ error }) => {
-      if (error) console.error('Add attendance error:', error.message);
-    });
+    setAttendance((prev) => [newA, ...prev]);
+    supabase
+      .from('attendance')
+      .insert(attendanceToDb(newA))
+      .then(({ error }) => {
+        if (error) console.error('Add attendance error:', error.message);
+      });
   }, []);
 
   const updateAttendance = useCallback((id: string, updates: Partial<AttendanceRecord>) => {
-    setAttendance(prev => prev.map(a => {
-      if (a.id !== id) return a;
-      const updated = { ...a, ...updates };
-      supabase.from('attendance').update(attendanceToDb(updated)).eq('id', id).then(({ error }) => {
-        if (error) console.error('Update attendance error:', error.message);
-      });
-      return updated;
-    }));
+    setAttendance((prev) =>
+      prev.map((a) => {
+        if (a.id !== id) return a;
+        const updated = { ...a, ...updates };
+        supabase
+          .from('attendance')
+          .update(attendanceToDb(updated))
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) console.error('Update attendance error:', error.message);
+          });
+        return updated;
+      })
+    );
   }, []);
 
   const deleteAttendance = useCallback((id: string) => {
-    setAttendance(prev => prev.filter(a => a.id !== id));
-    supabase.from('attendance').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Delete attendance error:', error.message);
-    });
+    setAttendance((prev) => prev.filter((a) => a.id !== id));
+    supabase
+      .from('attendance')
+      .delete()
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Delete attendance error:', error.message);
+      });
   }, []);
 
   const addCommission = useCallback((c: Omit<CommissionRecord, 'id'>) => {
     const newC: CommissionRecord = { ...c, id: genId('COM') };
-    setCommissions(prev => [newC, ...prev]);
-    supabase.from('commissions').insert(commissionToDb(newC)).then(({ error }) => {
-      if (error) console.error('Add commission error:', error.message);
-    });
+    setCommissions((prev) => [newC, ...prev]);
+    supabase
+      .from('commissions')
+      .insert(commissionToDb(newC))
+      .then(({ error }) => {
+        if (error) console.error('Add commission error:', error.message);
+      });
   }, []);
 
   const updateCommission = useCallback((id: string, updates: Partial<CommissionRecord>) => {
-    setCommissions(prev => prev.map(c => {
-      if (c.id !== id) return c;
-      const updated = { ...c, ...updates };
-      supabase.from('commissions').update(commissionToDb(updated)).eq('id', id).then(({ error }) => {
-        if (error) console.error('Update commission error:', error.message);
-      });
-      return updated;
-    }));
+    setCommissions((prev) =>
+      prev.map((c) => {
+        if (c.id !== id) return c;
+        const updated = { ...c, ...updates };
+        supabase
+          .from('commissions')
+          .update(commissionToDb(updated))
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) console.error('Update commission error:', error.message);
+          });
+        return updated;
+      })
+    );
   }, []);
 
   const deleteCommission = useCallback((id: string) => {
-    setCommissions(prev => prev.filter(c => c.id !== id));
-    supabase.from('commissions').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Delete commission error:', error.message);
-    });
+    setCommissions((prev) => prev.filter((c) => c.id !== id));
+    supabase
+      .from('commissions')
+      .delete()
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Delete commission error:', error.message);
+      });
   }, []);
 
   const addPricing = useCallback((p: Omit<PricingItem, 'id'>) => {
     const newP: PricingItem = { ...p, id: genId('PRC') };
-    setPricing(prev => [...prev, newP]);
-    supabase.from('pricing').insert(pricingToDb(newP)).then(({ error }) => {
-      if (error) console.error('Add pricing error:', error.message);
-    });
+    setPricing((prev) => [...prev, newP]);
+    supabase
+      .from('pricing')
+      .insert(pricingToDb(newP))
+      .then(({ error }) => {
+        if (error) console.error('Add pricing error:', error.message);
+      });
   }, []);
 
   const updatePricing = useCallback((id: string, updates: Partial<PricingItem>) => {
-    setPricing(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      const updated = { ...p, ...updates };
-      supabase.from('pricing').update(pricingToDb(updated)).eq('id', id).then(({ error }) => {
-        if (error) console.error('Update pricing error:', error.message);
-      });
-      return updated;
-    }));
+    setPricing((prev) =>
+      prev.map((p) => {
+        if (p.id !== id) return p;
+        const updated = { ...p, ...updates };
+        supabase
+          .from('pricing')
+          .update(pricingToDb(updated))
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) console.error('Update pricing error:', error.message);
+          });
+        return updated;
+      })
+    );
   }, []);
 
   const deletePricing = useCallback((id: string) => {
-    setPricing(prev => prev.filter(p => p.id !== id));
-    supabase.from('pricing').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Delete pricing error:', error.message);
-    });
+    setPricing((prev) => prev.filter((p) => p.id !== id));
+    supabase
+      .from('pricing')
+      .delete()
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Delete pricing error:', error.message);
+      });
   }, []);
 
   const addExpenditure = useCallback((item: Omit<ExpenditureItem, 'id'>) => {
     const newItem: ExpenditureItem = { ...item, id: genId('EXP') };
-    setExpenditures(prev => [newItem, ...prev]);
-    supabase.from('expenditures').insert({
-      id: newItem.id,
-      date: newItem.date,
-      description: newItem.description,
-      amount: newItem.amount,
-      category: newItem.category,
-      notes: newItem.notes || '',
-    }).then(({ error }) => {
-      if (error) console.error('Add expenditure error:', error.message);
-    });
+    setExpenditures((prev) => [newItem, ...prev]);
+    supabase
+      .from('expenditures')
+      .insert({
+        id: newItem.id,
+        date: newItem.date,
+        description: newItem.description,
+        amount: newItem.amount,
+        category: newItem.category,
+        notes: newItem.notes || '',
+      })
+      .then(({ error }) => {
+        if (error) console.error('Add expenditure error:', error.message);
+      });
   }, []);
 
   const deleteExpenditure = useCallback((id: string) => {
-    setExpenditures(prev => prev.filter(item => item.id !== id));
-    supabase.from('expenditures').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Delete expenditure error:', error.message);
-    });
+    setExpenditures((prev) => prev.filter((item) => item.id !== id));
+    supabase
+      .from('expenditures')
+      .delete()
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Delete expenditure error:', error.message);
+      });
   }, []);
 
-  const saveUtilityOpening = useCallback(async ({
-    utilityType,
-    openingReading,
-    openingCost,
-  }: {
-    utilityType: UtilityType;
-    openingReading: number;
-    openingCost: number;
-  }) => {
-    const logDate = todayISO();
-    const id = `${utilityType}-${logDate}`;
-    const now = new Date().toISOString();
+  const saveUtilityOpening = useCallback(
+    async ({
+      utilityType,
+      openingReading,
+      openingCost,
+    }: {
+      utilityType: UtilityType;
+      openingReading: number;
+      openingCost: number;
+    }) => {
+      const logDate = todayISO();
+      const id = `${utilityType}-${logDate}`;
+      const now = new Date().toISOString();
 
-    const row = {
-      id,
-      log_date: logDate,
-      utility_type: utilityType,
-      opening_reading: openingReading,
-      opening_cost: openingCost,
-      opening_logged_at: now,
-      status: 'opening_logged',
-    };
+      const row = {
+        id,
+        log_date: logDate,
+        utility_type: utilityType,
+        opening_reading: openingReading,
+        opening_cost: openingCost,
+        opening_logged_at: now,
+        status: 'opening_logged',
+      };
 
-    const { error } = await supabase.from('utility_logs').upsert(row, { onConflict: 'log_date,utility_type' });
+      const { error } = await supabase
+        .from('utility_logs')
+        .upsert(row, { onConflict: 'log_date,utility_type' });
 
-    if (error) {
-      console.error('Save utility opening error:', error.message);
-      alert(error.message);
-      return;
-    }
+      if (error) {
+        console.error('Save utility opening error:', error.message);
+        alert(error.message);
+        return;
+      }
 
-    await loadUtilityLogs();
-  }, [loadUtilityLogs]);
+      await loadUtilityLogs();
+    },
+    [loadUtilityLogs]
+  );
 
-  const saveUtilityClosing = useCallback(async ({
-    utilityType,
-    closingReading,
-    closingCost,
-  }: {
-    utilityType: UtilityType;
-    closingReading: number;
-    closingCost: number;
-  }) => {
-    const hour = new Date().getHours();
-    if (hour >= 20) {
-      alert('Closing entry is closed for today. It must be logged before 8:00 PM.');
-      return;
-    }
+  const saveUtilityClosing = useCallback(
+    async ({
+      utilityType,
+      closingReading,
+      closingCost,
+    }: {
+      utilityType: UtilityType;
+      closingReading: number;
+      closingCost: number;
+    }) => {
+      const hour = new Date().getHours();
+      if (hour >= 20) {
+        alert('Closing entry is closed for today. It must be logged before 8:00 PM.');
+        return;
+      }
 
-    const logDate = todayISO();
-    const now = new Date().toISOString();
+      const logDate = todayISO();
+      const now = new Date().toISOString();
 
-    const { error } = await supabase
-      .from('utility_logs')
-      .update({
-        closing_reading: closingReading,
-        closing_cost: closingCost,
-        closing_logged_at: now,
-        status: 'completed',
-      })
-      .eq('log_date', logDate)
-      .eq('utility_type', utilityType);
+      const { error } = await supabase
+        .from('utility_logs')
+        .update({
+          closing_reading: closingReading,
+          closing_cost: closingCost,
+          closing_logged_at: now,
+          status: 'completed',
+        })
+        .eq('log_date', logDate)
+        .eq('utility_type', utilityType);
 
-    if (error) {
-      console.error('Save utility closing error:', error.message);
-      alert(error.message);
-      return;
-    }
+      if (error) {
+        console.error('Save utility closing error:', error.message);
+        alert(error.message);
+        return;
+      }
 
-    await loadUtilityLogs();
-  }, [loadUtilityLogs]);
+      await loadUtilityLogs();
+    },
+    [loadUtilityLogs]
+  );
 
   const getTodayRevenue = useCallback(() => {
     const todayStr = todayISO();
     return workOrders
-      .filter(wo => wo.status === 'Completed' && wo.completedAt?.startsWith(todayStr))
+      .filter((wo) => wo.status === 'Completed' && wo.completedAt?.startsWith(todayStr))
       .reduce((sum, wo) => sum + (wo.totalAmount || 0), 0);
   }, [workOrders]);
 
   const getTodayOrders = useCallback(() => {
     const todayStr = todayISO();
-    return workOrders.filter(wo => wo.createdAt.startsWith(todayStr)).length;
+    return workOrders.filter((wo) => wo.createdAt.startsWith(todayStr)).length;
   }, [workOrders]);
 
   const getActiveJobs = useCallback(
-    () => workOrders.filter(wo => wo.status === 'In Progress').length,
+    () => workOrders.filter((wo) => wo.status === 'In Progress').length,
     [workOrders]
   );
 
   const getActiveWorkers = useCallback(
-    () => workers.filter(w => w.status === 'active').length,
+    () => workers.filter((w) => w.status === 'active').length,
     [workers]
   );
 
   const getTodayUtilitySummary = useCallback(() => {
     const todayStr = todayISO();
 
-    const electricity = utilityLogs.find(log => log.logDate === todayStr && log.utilityType === 'electricity');
-    const water = utilityLogs.find(log => log.logDate === todayStr && log.utilityType === 'water');
+    const electricity = utilityLogs.find(
+      (log) => log.logDate === todayStr && log.utilityType === 'electricity'
+    );
+    const water = utilityLogs.find(
+      (log) => log.logDate === todayStr && log.utilityType === 'water'
+    );
 
     const electricityConsumption = Math.max(
       Number(electricity?.closingReading || 0) - Number(electricity?.openingReading || 0),
@@ -889,7 +1061,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const getTodayExpenditure = useCallback(() => {
     const todayStr = todayISO();
     return expenditures
-      .filter(item => item.date === todayStr)
+      .filter((item) => item.date === todayStr)
       .reduce((sum, item) => sum + Number(item.amount || 0), 0);
   }, [expenditures]);
 

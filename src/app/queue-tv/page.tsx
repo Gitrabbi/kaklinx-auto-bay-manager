@@ -22,7 +22,8 @@ type WorkOrder = {
 };
 
 function todayISO() {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export default function QueueTVPage() {
@@ -54,7 +55,7 @@ export default function QueueTVPage() {
   // Cycle through active jobs every 5 seconds
   useEffect(() => {
     const cycleTimer = setInterval(() => {
-      setServingIndex((prev) => prev + 1);
+      setServingIndex((prev) => (prev + 1) % 1000);
     }, 5000);
     return () => clearInterval(cycleTimer);
   }, []);
@@ -76,6 +77,13 @@ export default function QueueTVPage() {
     setLoadError(false);
     setWorkOrders((data as WorkOrder[]) || []);
   }
+
+  // Retry loading when in error state
+  useEffect(() => {
+    if (!loadError) return;
+    const retryTimer = setInterval(() => loadQueue(), 10000);
+    return () => clearInterval(retryTimer);
+  }, [loadError]);
 
   const activeJobs = useMemo(
     () =>
@@ -377,15 +385,7 @@ export default function QueueTVPage() {
                       ⭐ VIP
                     </span>
                   )}
-                  {bayBadge(nowServing) && (
-                    <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.25em] backdrop-blur-xl ${
-                      nowServing.bay_number === 1 ? 'border-orange-300/40 bg-orange-400/15 text-orange-200' :
-                      nowServing.bay_number === 2 ? 'border-blue-300/40 bg-blue-400/15 text-blue-200' :
-                      'border-emerald-300/40 bg-emerald-400/15 text-emerald-200'
-                    }`}>
-                      Bay {nowServing.bay_number}
-                    </span>
-                  )}
+                  {bayBadge(nowServing)}
                   <div className="rounded-full border border-cyan-300/40 bg-cyan-400/15 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.3em] text-cyan-200 backdrop-blur-xl">
                     In Progress
                   </div>

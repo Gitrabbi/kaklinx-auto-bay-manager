@@ -11,6 +11,7 @@ export default function CustomerOrdersManager() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [selectedWorkers, setSelectedWorkers] = useState<Record<string, string[]>>({});
+  const [vipFlags, setVipFlags] = useState<Record<string, boolean>>({});
   const [convertingId, setConvertingId] = useState<string | null>(null);
 
   async function loadOrders() {
@@ -104,24 +105,25 @@ export default function CustomerOrdersManager() {
     const targetMinutes = calculateTargetMinutes(order.vehicle_type, services);
 
     const newWorkOrder = addWorkOrder({
-  plate: order.license_plate || 'N/A',
-  vehicleType: order.vehicle_type,
-  services,
-  status: 'Pending',
-  assignedWorkers: assignedWorkerIds,
-  notes: order.notes
-    ? `Customer order request: ${order.notes}`
-    : 'Created from customer online order request.',
-  totalAmount: Number(order.total_amount || 0),
-  additionalServiceDescription: '',
-  additionalServiceCost: 0,
-  discount: 0,
-  closureStatus: 'open',
-  targetMinutes: targetMinutes > 0 ? targetMinutes : 30,
-  qualityPassed: true,
-  extensionMinutes: 0,
-  source: 'customer_app',  // ← the new line
-});
+      plate: order.license_plate || 'N/A',
+      vehicleType: order.vehicle_type,
+      services,
+      status: 'Pending',
+      assignedWorkers: assignedWorkerIds,
+      notes: order.notes
+        ? `Customer order request: ${order.notes}`
+        : 'Created from customer online order request.',
+      totalAmount: Number(order.total_amount || 0),
+      additionalServiceDescription: '',
+      additionalServiceCost: 0,
+      discount: 0,
+      closureStatus: 'open',
+      targetMinutes: targetMinutes > 0 ? targetMinutes : 30,
+      qualityPassed: true,
+      extensionMinutes: 0,
+      source: 'customer_app',
+      isVip: vipFlags[order.id] || false,
+    });
 
     const { error } = await supabase
       .from('customer_orders')
@@ -248,9 +250,24 @@ export default function CustomerOrdersManager() {
 
                 {!isConverted && (
                   <div className="mt-5 border rounded-xl p-4">
-                    <h4 className="font-semibold text-sm text-slate-800 mb-3">
-                      Assign Worker(s)
-                    </h4>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-sm text-slate-800">
+                        Assign Worker(s)
+                      </h4>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={vipFlags[order.id] || false}
+                          onChange={(e) =>
+                            setVipFlags((f) => ({ ...f, [order.id]: e.target.checked }))
+                          }
+                          className="w-4 h-4 rounded accent-yellow-500"
+                        />
+                        <span className="text-sm font-semibold text-yellow-700">
+                          ⭐ VIP
+                        </span>
+                      </label>
+                    </div>
 
                     <div className="grid md:grid-cols-2 gap-2">
                       {workers.map((worker: any) => (
