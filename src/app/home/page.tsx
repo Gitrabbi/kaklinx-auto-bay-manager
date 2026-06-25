@@ -19,6 +19,7 @@ import CommissionsManager from './components/CommissionsManager';
 import ReportsExport from './components/ReportsExport';
 import PricingManager from './components/PricingManager';
 import { useAppData } from '../../context/AppDataContext';
+import { formatCurrency } from '@/lib/formatUtils';
 import DailyAccounting from './components/DailyAccounting';
 import UtilityTracker from './components/UtilityTracker';
 import UtilitySummaryCards from './components/UtilitySummaryCards';
@@ -147,10 +148,10 @@ function DashboardContent() {
         <StatsGrid
           todayOrders={todayOrders}
           activeJobs={activeJobs}
-          todayRevenue={`GH₵ ${todayRevenue.toFixed(2)}`}
+          todayRevenue={formatCurrency(todayRevenue)}
           activeWorkers={activeWorkers}
-          todayExpenditure={`GH₵ ${todayExpenditure.toFixed(2)}`}
-          netProfitOrLoss={`GH₵ ${netProfitOrLoss.toFixed(2)}`}
+          todayExpenditure={formatCurrency(todayExpenditure)}
+          netProfitOrLoss={formatCurrency(netProfitOrLoss)}
         />
       </div>
 
@@ -401,7 +402,7 @@ export default function HomePage() {
     <AuthGuard allowedRoles={['admin', 'cashier', 'worker']}>
       <div className="flex h-screen overflow-hidden bg-slate-950">
         <Sidebar
-          todayRevenue={`GH₵ ${todayRevenue.toFixed(2)}`}
+          todayRevenue={formatCurrency(todayRevenue)}
           mobileOpen={mobileOpen}
           onMobileClose={() => setMobileOpen(false)}
           activeSection={activeSection}
@@ -437,7 +438,7 @@ export default function HomePage() {
                   <div className="bg-white/10 border border-white/15 rounded-2xl px-5 py-4 min-w-[220px]">
                     <p className="text-xs text-blue-100">Today&apos;s Revenue</p>
                     <p className="text-2xl font-bold text-white mt-1">
-                      GH₵ {todayRevenue.toFixed(2)}
+                      {formatCurrency(todayRevenue)}
                     </p>
                   </div>
                 </div>

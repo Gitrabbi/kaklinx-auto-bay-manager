@@ -10,8 +10,9 @@ import {
 import { supabase } from '@/lib/supabaseClient';
 import { useAppData } from '../../../context/AppDataContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { todayISO, formatDate as formatDateUtil, formatTime as formatTimeUtil, calculateHours as calculateHoursUtil } from '@/lib/dateUtils';
 
-const today = new Date().toISOString().split('T')[0];
+const today = todayISO();
 
 export default function AttendanceManager() {
   const { workers } = useAppData();
@@ -94,27 +95,16 @@ export default function AttendanceManager() {
   }
 
   function formatTime(value?: string) {
-    if (!value) return '—';
-    return new Date(value).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatTimeUtil(value, '—');
   }
 
   function formatDate(value?: string) {
-    if (!value) return '—';
-    return new Date(value).toISOString().split('T')[0];
+    return formatDateUtil(value, '—');
   }
 
   function calculateHours(clockIn?: string, clockOut?: string) {
-    if (!clockIn || !clockOut) return null;
-
-    const start = new Date(clockIn).getTime();
-    const end = new Date(clockOut).getTime();
-
-    if (end <= start) return null;
-
-    return (end - start) / (1000 * 60 * 60);
+    const hours = calculateHoursUtil(clockIn, clockOut);
+    return hours === 0 ? null : hours;
   }
 
   const activeLogs = useMemo(() => {

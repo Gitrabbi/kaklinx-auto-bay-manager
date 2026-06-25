@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAppData } from '@/context/AppDataContext';
+import { formatCurrency } from '@/lib/formatUtils';
 
 export default function CustomerOrdersManager() {
   const { workers, pricing, addWorkOrder } = useAppData();
@@ -208,8 +209,8 @@ export default function CustomerOrdersManager() {
                   </p>
 
                   <p>
-                    <strong>Total:</strong> GHS{' '}
-                    {Number(order.total_amount || 0).toFixed(2)}
+                    <strong>Total:</strong>{' '}
+                    {formatCurrency(Number(order.total_amount || 0))}
                   </p>
                 </div>
 
@@ -232,7 +233,7 @@ export default function CustomerOrdersManager() {
                           </span>
 
                           <span>
-                            GHS {Number(service.price || 0).toFixed(2)}
+                            {formatCurrency(Number(service.price || 0))}
                           </span>
                         </li>
                       )

@@ -2,20 +2,10 @@
 
 import React, { useMemo, useState } from 'react';
 import { useAppData } from '../../../context/AppDataContext';
+import { todayISO, currentHour } from '@/lib/dateUtils';
+import { formatCurrency } from '@/lib/formatUtils';
 
 type UtilityType = 'electricity' | 'water';
-
-function todayISO() {
-  return new Date().toISOString().split('T')[0];
-}
-
-function currentHour() {
-  return new Date().getHours();
-}
-
-function money(value: number) {
-  return `GH₵ ${Number(value || 0).toFixed(2)}`;
-}
 
 export default function UtilityTracker() {
   const { utilityLogs, saveUtilityOpening, saveUtilityClosing } = useAppData();
@@ -88,9 +78,9 @@ export default function UtilityTracker() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Electricity Used Today</p><h2 className="text-2xl font-bold mt-2">{summary.electricityConsumption.toFixed(2)} kWh</h2></div>
-        <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Electricity Cost Today</p><h2 className="text-2xl font-bold mt-2">{money(summary.electricityCost)}</h2></div>
+        <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Electricity Cost Today</p><h2 className="text-2xl font-bold mt-2">{formatCurrency(summary.electricityCost)}</h2></div>
         <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Water Used Today</p><h2 className="text-2xl font-bold mt-2">{summary.waterConsumption.toFixed(2)} L</h2></div>
-        <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Water Cost Today</p><h2 className="text-2xl font-bold mt-2">{money(summary.waterCost)}</h2></div>
+        <div className="bg-white rounded-xl border p-5"><p className="text-xs text-slate-500">Water Cost Today</p><h2 className="text-2xl font-bold mt-2">{formatCurrency(summary.waterCost)}</h2></div>
       </div>
 
       <div className="bg-white rounded-xl border p-5">

@@ -1,11 +1,13 @@
 'use client';
 import React from 'react';
 import { useAppData } from '../../../context/AppDataContext';
+import { todayISO } from '@/lib/dateUtils';
+import { formatCurrency } from '@/lib/formatUtils';
 
 export default function DailyAccounting() {
   const { workOrders, workers, expenditures, getTodayExpenditure } = useAppData();
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
 
   const todaysOrders = workOrders.filter(order => order.createdAt?.startsWith(today));
   const completedOrders = todaysOrders.filter(order => order.status === 'Completed');
@@ -30,12 +32,12 @@ export default function DailyAccounting() {
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Today&apos;s Revenue</p>
-          <h2 className="text-2xl font-bold mt-2">GH₵ {totalRevenue.toFixed(2)}</h2>
+          <h2 className="text-2xl font-bold mt-2">{formatCurrency(totalRevenue)}</h2>
         </div>
 
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Pending Amount</p>
-          <h2 className="text-2xl font-bold mt-2">GH₵ {pendingAmount.toFixed(2)}</h2>
+          <h2 className="text-2xl font-bold mt-2">{formatCurrency(pendingAmount)}</h2>
         </div>
 
         <div className="bg-white rounded-xl border p-5">
@@ -50,13 +52,13 @@ export default function DailyAccounting() {
 
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Daily Expenditure</p>
-          <h2 className="text-2xl font-bold mt-2">GH₵ {totalExpenditure.toFixed(2)}</h2>
+          <h2 className="text-2xl font-bold mt-2">{formatCurrency(totalExpenditure)}</h2>
         </div>
 
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs text-slate-500">Profit / Loss</p>
           <h2 className={`text-2xl font-bold mt-2 ${netProfitOrLoss < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-            GH₵ {netProfitOrLoss.toFixed(2)}
+            {formatCurrency(netProfitOrLoss)}
           </h2>
         </div>
       </div>
@@ -86,7 +88,7 @@ export default function DailyAccounting() {
                     <td>{order.vehicleType}</td>
                     <td>{order.services?.join(', ')}</td>
                     <td>{order.status}</td>
-                    <td className="text-right font-semibold">GH₵ {Number(order.totalAmount || 0).toFixed(2)}</td>
+                    <td className="text-right font-semibold">{formatCurrency(Number(order.totalAmount || 0))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -107,7 +109,7 @@ export default function DailyAccounting() {
                   <p className="text-sm font-medium">{item.description}</p>
                   <p className="text-xs text-slate-500">{item.category}</p>
                 </div>
-                <p className="text-sm font-semibold">GH₵ {Number(item.amount || 0).toFixed(2)}</p>
+                <p className="text-sm font-semibold">{formatCurrency(Number(item.amount || 0))}</p>
               </div>
             ))}
           </div>

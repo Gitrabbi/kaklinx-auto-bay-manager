@@ -7,11 +7,13 @@ import {
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useAppData } from '../../../context/AppDataContext';
+import { todayISO } from '@/lib/dateUtils';
+import { formatCurrency } from '@/lib/formatUtils';
 
 export default function ServiceBreakdown() {
   const { workOrders } = useAppData();
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
 
   const todaysOrders = workOrders.filter(order =>
     order.createdAt?.startsWith(today)
@@ -35,7 +37,7 @@ export default function ServiceBreakdown() {
   const serviceStats = Object.entries(serviceMap).map(([name, data]) => ({
     name,
     count: data.count,
-    revenue: `GH₵ ${data.revenue.toFixed(2)}`,
+    revenue: formatCurrency(data.revenue),
     percentage: (data.count / maxCount) * 100,
   }));
 

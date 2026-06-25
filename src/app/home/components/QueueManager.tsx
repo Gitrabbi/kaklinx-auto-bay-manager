@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useAppData } from '@/context/AppDataContext';
+import { todayISO } from '@/lib/dateUtils';
 import {
   ClockIcon,
   TruckIcon,
@@ -23,7 +24,7 @@ export default function QueueManager() {
   const completedOrdersAll = workOrders.filter((wo) => wo.status === 'Completed');
 
   const completedTodayCount = completedOrdersAll.filter(
-    (wo) => wo.completedAt?.startsWith(new Date().toISOString().split('T')[0])
+    (wo) => wo.completedAt?.startsWith(todayISO())
   ).length;
 
   const averageWait =
@@ -61,7 +62,7 @@ export default function QueueManager() {
   };
 
   const filteredCompleted = React.useMemo(() => {
-    const todayPrefix = new Date().toISOString().split('T')[0];
+    const todayPrefix = todayISO();
 
     return completedOrdersAll
       .filter((wo) => {
