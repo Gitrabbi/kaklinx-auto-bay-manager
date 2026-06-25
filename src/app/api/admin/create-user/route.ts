@@ -6,7 +6,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-function normalizeGhanaPhone(phone: string) {
+export function normalizeGhanaPhone(phone: string) {
   const cleaned = phone.replace(/\s+/g, '').replace(/-/g, '');
 
   if (cleaned.startsWith('+')) return cleaned;

@@ -186,23 +186,23 @@ const AppDataContext = createContext<AppDataContextType | null>(null);
 
 let idCounter = Date.now();
 
-function genId(prefix: string) {
+export function genId(prefix: string) {
   return `${prefix}-${++idCounter}`;
 }
 
-function getInitials(name: string) {
+export function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
-function todayISO() {
+export function todayISO() {
   return new Date().toISOString().split('T')[0];
 }
 
-function getQueueDate(value: Pick<WorkOrder, 'createdAt' | 'queueDate'>) {
+export function getQueueDate(value: Pick<WorkOrder, 'createdAt' | 'queueDate'>) {
   return value.queueDate || value.createdAt.slice(0, 10) || todayISO();
 }
 
-function normalizeQueueOrders(orders: WorkOrder[]) {
+export function normalizeQueueOrders(orders: WorkOrder[]) {
   const queueDate = todayISO();
 
   const todaysOrders = orders
@@ -269,7 +269,7 @@ pendingOrders.forEach((wo, index) => {
   });
 }
 
-function dbToWorker(row: any): Worker {
+export function dbToWorker(row: any): Worker {
   return {
     id: row.id,
     name: row.name,
@@ -283,7 +283,7 @@ function dbToWorker(row: any): Worker {
   };
 }
 
-function workerToDb(w: Worker) {
+export function workerToDb(w: Worker) {
   return {
     id: w.id,
     name: w.name,
@@ -297,7 +297,7 @@ function workerToDb(w: Worker) {
   };
 }
 
-function dbToPricing(row: any): PricingItem {
+export function dbToPricing(row: any): PricingItem {
   return {
     id: row.id,
     vehicleType: row.vehicle_type,
@@ -307,7 +307,7 @@ function dbToPricing(row: any): PricingItem {
   };
 }
 
-function pricingToDb(p: PricingItem) {
+export function pricingToDb(p: PricingItem) {
   return {
     id: p.id,
     vehicle_type: p.vehicleType,
@@ -317,7 +317,7 @@ function pricingToDb(p: PricingItem) {
   };
 }
 
-function dbToWorkOrder(row: any): WorkOrder {
+export function dbToWorkOrder(row: any): WorkOrder {
   return {
     id: row.id,
     plate: row.plate,
@@ -356,7 +356,7 @@ function dbToWorkOrder(row: any): WorkOrder {
   };
 }
 
-function workOrderToDb(wo: WorkOrder) {
+export function workOrderToDb(wo: WorkOrder) {
   return {
     id: wo.id,
     plate: wo.plate,
@@ -395,7 +395,7 @@ function workOrderToDb(wo: WorkOrder) {
   };
 }
 
-function dbToAttendance(row: any): AttendanceRecord {
+export function dbToAttendance(row: any): AttendanceRecord {
   return {
     id: row.id,
     workerId: row.worker_id,
@@ -408,7 +408,7 @@ function dbToAttendance(row: any): AttendanceRecord {
   };
 }
 
-function attendanceToDb(a: AttendanceRecord) {
+export function attendanceToDb(a: AttendanceRecord) {
   return {
     id: a.id,
     worker_id: a.workerId,
@@ -421,7 +421,7 @@ function attendanceToDb(a: AttendanceRecord) {
   };
 }
 
-function dbToCommission(row: any): CommissionRecord {
+export function dbToCommission(row: any): CommissionRecord {
   return {
     id: row.id,
     workerId: row.worker_id,
@@ -434,7 +434,7 @@ function dbToCommission(row: any): CommissionRecord {
   };
 }
 
-function commissionToDb(c: CommissionRecord) {
+export function commissionToDb(c: CommissionRecord) {
   return {
     id: c.id,
     worker_id: c.workerId,
@@ -447,7 +447,7 @@ function commissionToDb(c: CommissionRecord) {
   };
 }
 
-function dbToUtilityLog(row: any): UtilityLog {
+export function dbToUtilityLog(row: any): UtilityLog {
   return {
     id: row.id,
     logDate: row.log_date,
