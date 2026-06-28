@@ -32,8 +32,6 @@ function CustomerOrdersTrackingContent() {
   const [searched, setSearched] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
-  const [hiddenOrderIds, setHiddenOrderIds] = useState<Set<string>>(new Set());
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
@@ -241,20 +239,9 @@ function CustomerOrdersTrackingContent() {
 
   function getFilteredOrders(): any[] {
     const nonDeleted = orders.filter(order => !order.customer_deleted_at);
-    const filtered = activeTab === 'active'
+    return activeTab === 'active'
       ? nonDeleted.filter(order => isOrderActive(order))
       : nonDeleted.filter(order => isOrderCompleted(order));
-
-    return filtered.filter(order => !hiddenOrderIds.has(String(order.id)));
-  }
-
-  function hideOrder(orderId: string) {
-    setHiddenOrderIds(prev => new Set([...prev, orderId]));
-  }
-
-  function clearAllHiddenOrders() {
-    setHiddenOrderIds(new Set());
-    setShowClearConfirm(false);
   }
 
   async function deleteOrder(orderId: string) {
@@ -445,47 +432,6 @@ function CustomerOrdersTrackingContent() {
               </button>
             </div>
 
-            {/* Clear History Button */}
-            {activeTab === 'history' && hiddenOrderIds.size > 0 && (
-              <div className="mt-4 px-6 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-xl flex items-center justify-between">
-                <p className="text-blue-200">
-                  📋 {hiddenOrderIds.size} hidden order{hiddenOrderIds.size !== 1 ? 's' : ''}
-                </p>
-                <button
-                  onClick={() => setShowClearConfirm(true)}
-                  className="text-sm px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white transition"
-                >
-                  Unhide All
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Clear Confirmation Modal */}
-        {showClearConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 max-w-sm shadow-2xl">
-              <h3 className="text-xl font-bold text-white">Unhide All Orders?</h3>
-              <p className="text-blue-200 mt-2">
-                This will restore all hidden orders to your view. No data will be deleted from the database.
-              </p>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowClearConfirm(false)}
-                  className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white transition font-bold"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={clearAllHiddenOrders}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 rounded-lg text-white transition font-bold shadow-lg"
-                >
-                  Unhide All
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
@@ -788,24 +734,13 @@ function CustomerOrdersTrackingContent() {
                             </button>
                           )}
 
-                          {isCompleted && (
-                            <button
-                              onClick={() => setShowDeleteConfirm(String(order.id))}
-                              disabled={deletingOrderId === String(order.id)}
-                              className="flex-1 bg-red-500/20 hover:bg-red-500/30 border border-red-400/50 text-red-300 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
-                            >
-                              🗑️ {deletingOrderId === String(order.id) ? 'Deleting...' : 'Delete'}
-                            </button>
-                          )}
-
-                          {!isCompleted && (
-                            <button
-                              onClick={() => hideOrder(String(order.id))}
-                              className="flex-1 bg-white/10 hover:bg-white/20 border border-white/20 text-blue-200 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg"
-                            >
-                              👁️ Hide
-                            </button>
-                          )}
+                          <button
+                            onClick={() => setShowDeleteConfirm(String(order.id))}
+                            disabled={deletingOrderId === String(order.id)}
+                            className="flex-1 bg-red-500/20 hover:bg-red-500/30 border border-red-400/50 text-red-300 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                          >
+                            🗑️ {deletingOrderId === String(order.id) ? 'Deleting...' : 'Delete'}
+                          </button>
                         </div>
                       </div>
                     </div>
