@@ -30,6 +30,8 @@ function ServiceHistoryContent() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     const phoneFromUrl = searchParams.get('phone');
@@ -116,11 +118,48 @@ function ServiceHistoryContent() {
     setLoading(false);
   }
 
+  function isOrderCompleted(order: any): boolean {
+    const status = order.status?.toLowerCase() || '';
+    if (status === 'completed' || status === 'cancelled') return true;
+
+    if (status === 'converted') {
+      const workOrderId = order.converted_work_order_id;
+      const workOrder = workOrderId ? workOrders[String(workOrderId)] : null;
+
+      if (!workOrder) return true;
+
+      const workOrderStatus = workOrder?.status?.toLowerCase() || '';
+      const completedAt = workOrder?.completed_at || workOrder?.completedAt;
+      return workOrderStatus === 'completed' || !!completedAt;
+    }
+
+    return false;
+  }
+
   function getCompletedOrders(): any[] {
-    return orders.filter(order => {
-      const status = order.status;
-      return status === 'completed' || status === 'Completed' || status === 'cancelled' || status === 'Cancelled';
-    });
+    return orders
+      .filter(order => !order.customer_deleted_at)
+      .filter(order => isOrderCompleted(order));
+  }
+
+  async function deleteOrder(orderId: string) {
+    setDeletingOrderId(orderId);
+
+    const { error } = await supabase
+      .from('customer_orders')
+      .update({ customer_deleted_at: new Date().toISOString() })
+      .eq('id', orderId);
+
+    if (error) {
+      console.error('Delete order error:', error.message);
+    } else {
+      setOrders(prev => prev.map(o =>
+        String(o.id) === orderId ? { ...o, customer_deleted_at: new Date().toISOString() } : o
+      ));
+    }
+
+    setDeletingOrderId(null);
+    setShowDeleteConfirm(null);
   }
 
   function calculateMetrics() {
@@ -463,13 +502,20 @@ function ServiceHistoryContent() {
                         </div>
                       )}
 
-                      {/* Reorder Button */}
-                      <div className="mt-4 pt-4 border-t border-slate-200">
+                      {/* Action Buttons */}
+                      <div className="mt-4 pt-4 border-t border-slate-200 flex gap-3">
                         <button
                           onClick={() => handleReorder(order)}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2"
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2"
                         >
                           🔄 Reorder This Service
+                        </button>
+                        <button
+                          onClick={() => setShowDeleteConfirm(String(order.id))}
+                          disabled={deletingOrderId === String(order.id)}
+                          className="flex-1 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          🗑️ {deletingOrderId === String(order.id) ? 'Deleting...' : 'Delete Order'}
                         </button>
                       </div>
                     </div>
@@ -480,6 +526,33 @@ function ServiceHistoryContent() {
           )}
         </div>
       </section>
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-8 max-w-sm shadow-2xl border">
+            <h3 className="text-xl font-bold text-slate-900">Delete Order?</h3>
+            <p className="text-slate-600 mt-2">
+              This will remove the order from your view. The order data remains safe in our system.
+            </p>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-slate-700 transition font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteOrder(showDeleteConfirm)}
+                disabled={!!deletingOrderId}
+                className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 rounded-lg text-white transition font-bold shadow-lg"
+              >
+                {deletingOrderId ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
