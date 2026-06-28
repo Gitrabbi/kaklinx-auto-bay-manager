@@ -32,8 +32,8 @@ function CustomerOrdersTrackingContent() {
   const [searched, setSearched] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
-  const [hiddenOrderIds, setHiddenOrderIds] = useState<Set<string>>(new Set());
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -194,7 +194,24 @@ function CustomerOrdersTrackingContent() {
 
   function isOrderActive(order: any): boolean {
     const status = order.status?.toLowerCase() || '';
-    return status === 'pending' || status === 'converted' || status === 'in_progress';
+
+    if (status === 'completed' || status === 'cancelled') return false;
+
+    if (status === 'converted') {
+      const workOrderId = order.converted_work_order_id;
+      const workOrder = workOrderId ? workOrders[String(workOrderId)] : null;
+
+      if (!workOrder) return false;
+
+      const workOrderStatus = workOrder?.status?.toLowerCase() || '';
+      const completedAt = workOrder?.completed_at || workOrder?.completedAt;
+
+      if (workOrderStatus === 'completed' || completedAt) return false;
+
+      return true;
+    }
+
+    return status === 'pending' || status === 'in_progress';
   }
 
   function isOrderCompletedByCustomerOrder(order: any): boolean {
@@ -205,11 +222,15 @@ function CustomerOrdersTrackingContent() {
   function isOrderCompletedByWorkOrder(order: any): boolean {
     const workOrderId = order.converted_work_order_id;
     const workOrder = workOrderId ? workOrders[String(workOrderId)] : null;
-    
-    if (!workOrder) return false;
-    
+
+    if (!workOrder) {
+      const status = order.status?.toLowerCase() || '';
+      return status === 'converted';
+    }
+
     const workOrderStatus = workOrder?.status?.toLowerCase() || '';
-    return workOrderStatus === 'completed';
+    const completedAt = workOrder?.completed_at || workOrder?.completedAt;
+    return workOrderStatus === 'completed' || !!completedAt;
   }
 
   function isOrderCompleted(order: any): boolean {
@@ -217,20 +238,30 @@ function CustomerOrdersTrackingContent() {
   }
 
   function getFilteredOrders(): any[] {
-    const filtered = activeTab === 'active'
-      ? orders.filter(order => isOrderActive(order) && !isOrderCompleted(order))
-      : orders.filter(order => isOrderCompleted(order));
-    
-    return filtered.filter(order => !hiddenOrderIds.has(String(order.id)));
+    const nonDeleted = orders.filter(order => !order.customer_deleted_at);
+    return activeTab === 'active'
+      ? nonDeleted.filter(order => isOrderActive(order))
+      : nonDeleted.filter(order => isOrderCompleted(order));
   }
 
-  function hideOrder(orderId: string) {
-    setHiddenOrderIds(prev => new Set([...prev, orderId]));
-  }
+  async function deleteOrder(orderId: string) {
+    setDeletingOrderId(orderId);
 
-  function clearAllHiddenOrders() {
-    setHiddenOrderIds(new Set());
-    setShowClearConfirm(false);
+    const { error } = await supabase
+      .from('customer_orders')
+      .update({ customer_deleted_at: new Date().toISOString() })
+      .eq('id', orderId);
+
+    if (error) {
+      console.error('Delete order error:', error.message);
+    } else {
+      setOrders(prev => prev.map(o =>
+        String(o.id) === orderId ? { ...o, customer_deleted_at: new Date().toISOString() } : o
+      ));
+    }
+
+    setDeletingOrderId(null);
+    setShowDeleteConfirm(null);
   }
 
   async function loadOrders(phoneNumber?: string) {
@@ -303,8 +334,9 @@ function CustomerOrdersTrackingContent() {
   }
 
   const filteredOrders = getFilteredOrders();
-  const activeCount = orders.filter(o => isOrderActive(o) && !isOrderCompleted(o)).length;
-  const historyCount = orders.filter(o => isOrderCompleted(o)).length;
+  const nonDeletedOrders = orders.filter(o => !o.customer_deleted_at);
+  const activeCount = nonDeletedOrders.filter(o => isOrderActive(o)).length;
+  const historyCount = nonDeletedOrders.filter(o => isOrderCompleted(o)).length;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
@@ -400,44 +432,31 @@ function CustomerOrdersTrackingContent() {
               </button>
             </div>
 
-            {/* Clear History Button */}
-            {activeTab === 'history' && hiddenOrderIds.size > 0 && (
-              <div className="mt-4 px-6 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-xl flex items-center justify-between">
-                <p className="text-blue-200">
-                  📋 {hiddenOrderIds.size} hidden order{hiddenOrderIds.size !== 1 ? 's' : ''}
-                </p>
-                <button
-                  onClick={() => setShowClearConfirm(true)}
-                  className="text-sm px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white transition"
-                >
-                  Unhide All
-                </button>
-              </div>
-            )}
           </div>
         )}
 
-        {/* Clear Confirmation Modal */}
-        {showClearConfirm && (
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 max-w-sm shadow-2xl">
-              <h3 className="text-xl font-bold text-white">Unhide All Orders?</h3>
+              <h3 className="text-xl font-bold text-white">Delete Order?</h3>
               <p className="text-blue-200 mt-2">
-                This will restore all hidden orders to your view. No data will be deleted from the database.
+                This will remove the order from your view. This action cannot be undone.
               </p>
 
               <div className="flex gap-3 mt-6">
                 <button
-                  onClick={() => setShowClearConfirm(false)}
+                  onClick={() => setShowDeleteConfirm(null)}
                   className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white transition font-bold"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={clearAllHiddenOrders}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 rounded-lg text-white transition font-bold shadow-lg"
+                  onClick={() => deleteOrder(showDeleteConfirm)}
+                  disabled={!!deletingOrderId}
+                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 rounded-lg text-white transition font-bold shadow-lg"
                 >
-                  Unhide All
+                  {deletingOrderId ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>
@@ -716,10 +735,11 @@ function CustomerOrdersTrackingContent() {
                           )}
 
                           <button
-                            onClick={() => hideOrder(String(order.id))}
-                            className="flex-1 bg-white/10 hover:bg-white/20 border border-white/20 text-blue-200 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg"
+                            onClick={() => setShowDeleteConfirm(String(order.id))}
+                            disabled={deletingOrderId === String(order.id)}
+                            className="flex-1 bg-red-500/20 hover:bg-red-500/30 border border-red-400/50 text-red-300 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
                           >
-                            👁️ Hide
+                            🗑️ {deletingOrderId === String(order.id) ? 'Deleting...' : 'Delete'}
                           </button>
                         </div>
                       </div>
